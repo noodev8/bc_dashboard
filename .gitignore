@@ -60,6 +60,10 @@ android/key.properties
 # API credentials and sensitive configuration files
 merchant-feed-api-462809-23c712978791.json
 .env
+.env.production
+.env.development
+.env.local
+.env.*.local
 
 # Python environment
 venv/

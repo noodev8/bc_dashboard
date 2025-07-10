@@ -49,17 +49,30 @@ npm install
 
 ### 3. Environment Configuration
 
+⚠️ **SECURITY NOTE**: Environment files with credentials are not included in the repository for security reasons.
+
 #### Backend Production Environment
-The `.env.production` file is already configured for your VPS:
-- Server binds to 0.0.0.0:5000
-- CORS allows requests from 217.154.35.5:3001
-- Database points to your VPS PostgreSQL
+1. **Copy the template file:**
+   ```bash
+   cp dashboard_backend/.env.production.template dashboard_backend/.env.production
+   ```
+
+2. **Edit `.env.production`** with your actual values:
+   - Server binds to 0.0.0.0:5000
+   - CORS allows requests from your frontend URL
+   - Database credentials (use secure passwords)
+   - JWT secret (generate a secure random string)
 
 #### Frontend Production Environment
-The `.env.production` file is configured to:
-- Run on port 3001
-- Bind to all interfaces (0.0.0.0)
-- API calls point to 217.154.35.5:5000
+1. **Copy the template file:**
+   ```bash
+   cp dashboard_frontend/.env.production.template dashboard_frontend/.env.production
+   ```
+
+2. **Edit `.env.production`** with your actual values:
+   - Run on port 3001
+   - Bind to all interfaces (0.0.0.0)
+   - API calls point to your backend server
 
 ### 4. Start the Applications
 
