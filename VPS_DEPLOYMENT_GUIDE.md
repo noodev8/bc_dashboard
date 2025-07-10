@@ -14,10 +14,10 @@ This guide will help you deploy your BC dashboard application on your VPS server
 ### Backend Changes
 1. **Updated server.js** to bind to all interfaces (0.0.0.0)
 2. **Added CORS configuration** to allow frontend requests
-3. **Created production environment file** (`.env.production`)
+3. **Uses single .env file** for all configuration
 
 ### Frontend Changes
-1. **Created production environment file** (`.env.production`)
+1. **Uses single .env file** for all configuration
 2. **Removed proxy configuration** from package.json
 3. **API calls already configured** to use environment variables
 
@@ -51,41 +51,44 @@ npm install
 
 ⚠️ **SECURITY NOTE**: Environment files with credentials are not included in the repository for security reasons.
 
-#### Backend Production Environment
+#### Backend Environment Setup
 1. **Copy the template file:**
    ```bash
-   cp dashboard_backend/.env.production.template dashboard_backend/.env.production
+   cp dashboard_backend/.env.template dashboard_backend/.env
    ```
 
-2. **Edit `.env.production`** with your actual values:
-   - Server binds to 0.0.0.0:5000
-   - CORS allows requests from your frontend URL
-   - Database credentials (use secure passwords)
-   - JWT secret (generate a secure random string)
+2. **Edit `.env`** with your actual values:
+   - Set NODE_ENV=production for production deployment
+   - Set HOST=0.0.0.0 to bind to all interfaces
+   - Set PORT=5000 (or your preferred port)
+   - Add your database credentials (use secure passwords)
+   - Generate a secure JWT secret
+   - Set CORS_ORIGIN to your frontend URL
 
-#### Frontend Production Environment
+#### Frontend Environment Setup
 1. **Copy the template file:**
    ```bash
-   cp dashboard_frontend/.env.production.template dashboard_frontend/.env.production
+   cp dashboard_frontend/.env.template dashboard_frontend/.env
    ```
 
-2. **Edit `.env.production`** with your actual values:
-   - Run on port 3001
-   - Bind to all interfaces (0.0.0.0)
-   - API calls point to your backend server
+2. **Edit `.env`** with your actual values:
+   - Set PORT=3001 (or your preferred port)
+   - Set HOST=0.0.0.0 to bind to all interfaces
+   - Set BROWSER=none to disable auto-opening browser
+   - Set REACT_APP_API_URL to your backend server URL
 
 ### 4. Start the Applications
 
-#### Start Backend (Production Mode)
+#### Start Backend
 ```bash
 cd dashboard_backend
-NODE_ENV=production node server.js
+node server.js
 ```
 
-#### Start Frontend (Production Mode)
+#### Start Frontend
 ```bash
 cd dashboard_frontend
-NODE_ENV=production npm start
+npm start
 ```
 
 ### 5. Access Your Dashboard
@@ -116,7 +119,7 @@ npm install -g pm2
 
 # Start backend with PM2
 cd dashboard_backend
-pm2 start server.js --name "bc-dashboard-backend" --env production
+pm2 start server.js --name "bc-dashboard-backend"
 
 # Start frontend with PM2
 cd ../dashboard_frontend
@@ -131,7 +134,7 @@ pm2 startup
 
 ### Common Issues
 1. **Connection refused**: Check if services are running and ports are open
-2. **CORS errors**: Verify CORS_ORIGIN in backend .env.production
+2. **CORS errors**: Verify CORS_ORIGIN in backend .env file
 3. **API errors**: Check if backend is accessible from frontend
 
 ### Logs
@@ -146,6 +149,7 @@ curl -X POST http://217.154.35.5:5000/health
 
 ## Security Notes
 - Consider using HTTPS in production
-- Update JWT_SECRET in production environment
+- Use a strong JWT_SECRET in your .env file
 - Restrict database access to necessary IPs only
 - Consider using a reverse proxy (nginx) for better security
+- Never commit .env files to version control
