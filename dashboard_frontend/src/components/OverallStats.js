@@ -81,96 +81,37 @@ const OverallStats = ({ overallStats, comparisonMode }) => {
   const safeChanges = changes || {};
 
   return (
-    <div className="overall-stats-container">
-      <div className="stats-header">
-        <h2>📊 Overall Performance</h2>
-        {comparisonMode && (
-          <span className="comparison-note">vs Previous Week</span>
+    <div className="stats-grid">
+      {/* Total Annual Profit */}
+      <div className="stat-card profit-card">
+        <div className="stat-header">
+          <span className="stat-icon">💰</span>
+          <span className="stat-title">Total Annual Profit</span>
+        </div>
+        <div className="stat-value">
+          {formatCurrency(current.total_annual_profit)}
+        </div>
+        {getChangeDisplay(
+          safeChanges.total_annual_profit_change,
+          safeChanges.total_annual_profit_change_percent,
+          true
         )}
       </div>
-      
-      <div className="stats-grid">
-        {/* Total Annual Profit */}
-        <div className="stat-card profit-card">
-          <div className="stat-header">
-            <span className="stat-icon">💰</span>
-            <span className="stat-title">Total Annual Profit</span>
-          </div>
-          <div className="stat-value">
-            {formatCurrency(current.total_annual_profit)}
-          </div>
-          {getChangeDisplay(
-            safeChanges.total_annual_profit_change,
-            safeChanges.total_annual_profit_change_percent,
-            true
-          )}
-        </div>
 
-        {/* Total Sold Quantity */}
-        <div className="stat-card sales-card">
-          <div className="stat-header">
-            <span className="stat-icon">📦</span>
-            <span className="stat-title">Total Units Sold</span>
-          </div>
-          <div className="stat-value">
-            {formatNumber(current.total_sold_qty)}
-          </div>
-          {getChangeDisplay(
-            safeChanges.total_sold_qty_change,
-            safeChanges.total_sold_qty_change_percent,
-            true
-          )}
+      {/* Total Sold Quantity */}
+      <div className="stat-card sales-card">
+        <div className="stat-header">
+          <span className="stat-icon">📦</span>
+          <span className="stat-title">Total Units Sold</span>
         </div>
-
-        {/* Average Profit Per Unit */}
-        <div className="stat-card unit-profit-card">
-          <div className="stat-header">
-            <span className="stat-icon">💵</span>
-            <span className="stat-title">Avg Profit Per Unit</span>
-          </div>
-          <div className="stat-value">
-            {formatCurrency(current.avg_profit_per_unit)}
-          </div>
-          {getChangeDisplay(
-            safeChanges.avg_profit_per_unit_change,
-            safeChanges.avg_profit_per_unit_change_percent,
-            true
-          )}
+        <div className="stat-value">
+          {formatNumber(current.total_sold_qty)}
         </div>
-
-        {/* Average Gross Margin */}
-        <div className="stat-card margin-card">
-          <div className="stat-header">
-            <span className="stat-icon">📊</span>
-            <span className="stat-title">Avg Gross Margin</span>
-          </div>
-          <div className="stat-value">
-            {formatPercentage(current.avg_gross_margin * 100)}
-          </div>
-          {getChangeDisplay(
-            safeChanges.avg_gross_margin_change,
-            safeChanges.avg_gross_margin_change_percent,
-            true
-          )}
-        </div>
-
-        {/* Total Products */}
-        <div className="stat-card products-card">
-          <div className="stat-header">
-            <span className="stat-icon">🏷️</span>
-            <span className="stat-title">Total Products</span>
-          </div>
-          <div className="stat-value">
-            {formatNumber(current.total_products)}
-          </div>
-          {comparisonMode && safeChanges.total_products_change !== undefined && (
-            <div className="change-indicator neutral">
-              <span className="change-text">
-                {safeChanges.total_products_change >= 0 ? '+' : ''}{safeChanges.total_products_change} products
-              </span>
-            </div>
-          )}
-        </div>
+        {getChangeDisplay(
+          safeChanges.total_sold_qty_change,
+          safeChanges.total_sold_qty_change_percent,
+          true
+        )}
       </div>
     </div>
   );

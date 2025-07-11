@@ -452,18 +452,7 @@ const ProductsScreen = () => {
         </div>
       </div>
 
-      {comparisonMode && comparisonInfo && (
-        <div className="comparison-info-banner">
-          <div className="comparison-details">
-            <span className="comparison-weeks">
-              📊 Comparing <strong>{comparisonInfo.current_week}</strong> vs <strong>{comparisonInfo.previous_week}</strong>
-            </span>
-            <span className="comparison-stats">
-              {comparisonInfo.products_with_comparison} products with comparison data
-            </span>
-          </div>
-        </div>
-      )}
+
 
       {/* Overall Statistics Component - Show stats for filtered products */}
       {calculateFilteredStats && (
