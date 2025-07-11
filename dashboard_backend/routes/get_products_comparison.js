@@ -147,7 +147,47 @@ router.post('/', async (req, res) => {
             comparisonLabel = 'Previous Week';
         }
 
-        console.log(`GET_PRODUCTS_COMPARISON: Comparing ${actualCurrentWeek} vs ${comparisonWeek} (${comparisonLabel})`);
+        // Check if the calculated comparison week has data, if not find the best available
+        const checkWeekQuery = `
+            SELECT COUNT(*) as count
+            FROM groupid_performance_week
+            WHERE channel = 'SHP' AND year_week = $1
+        `;
+
+        const checkResult = await db.query(checkWeekQuery, [comparisonWeek]);
+        const hasData = parseInt(checkResult.rows[0].count) > 0;
+
+        if (!hasData && comparisonPeriod === 'month') {
+            console.log(`GET_PRODUCTS_COMPARISON: No data for ${comparisonWeek}, finding oldest available week`);
+
+            // Get all available weeks older than current week
+            const availableWeeksQuery = `
+                SELECT year_week
+                FROM groupid_performance_week
+                WHERE channel = 'SHP'
+                  AND year_week < $1
+                ORDER BY year_week DESC
+                LIMIT 5
+            `;
+
+            const availableResult = await db.query(availableWeeksQuery, [actualCurrentWeek]);
+
+            if (availableResult.rows.length > 0) {
+                // Use the oldest available week (last in the DESC ordered list)
+                const oldestAvailable = availableResult.rows[availableResult.rows.length - 1].year_week;
+                comparisonWeek = oldestAvailable;
+
+                // Calculate how many weeks back this actually is
+                const [oldYear, oldWeekStr] = oldestAvailable.split('-W');
+                const oldWeekNum = parseInt(oldWeekStr);
+                const weeksBack = actualWeekNum - oldWeekNum;
+
+                comparisonLabel = weeksBack === 1 ? 'Previous Week' : `${weeksBack} weeks ago`;
+                console.log(`GET_PRODUCTS_COMPARISON: Using oldest available: ${comparisonWeek} (${comparisonLabel})`);
+            }
+        }
+
+        console.log(`GET_PRODUCTS_COMPARISON: Final comparison: ${actualCurrentWeek} vs ${comparisonWeek} (${comparisonLabel})`);
 
 
 

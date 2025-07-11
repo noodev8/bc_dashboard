@@ -453,8 +453,8 @@ const ProductsScreen = () => {
                 className="comparison-period-select"
                 title="Select comparison period"
               >
-                <option value="week">vs Previous Week</option>
-                <option value="month">vs Last Month</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
               </select>
             )}
           </div>
