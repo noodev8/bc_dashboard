@@ -5,10 +5,11 @@ Shows key performance metrics including annual profit, quantity sold, and profit
 Provides filtering and sorting capabilities for better data analysis
 */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getProducts } from '../api/get_products_api';
 import { getOwners } from '../api/get_owners_api';
 import { getProductsComparison } from '../api/get_products_comparison_api';
+import OverallStats from '../components/OverallStats';
 import './products_screen.css';
 
 const ProductsScreen = () => {
@@ -26,6 +27,7 @@ const ProductsScreen = () => {
   const [showTasksOnly, setShowTasksOnly] = useState(false);
   const [comparisonMode, setComparisonMode] = useState(false);
   const [comparisonInfo, setComparisonInfo] = useState(null);
+  const [overallStats, setOverallStats] = useState(null);
 
   // Load products and owners data on component mount
   useEffect(() => {
@@ -68,10 +70,30 @@ const ProductsScreen = () => {
         result = await getProductsComparison();
         if (result.success) {
           setComparisonInfo(result.comparisonInfo);
+          setOverallStats(result.overallStats);
         }
       } else {
         result = await getProducts();
         setComparisonInfo(null);
+        // Calculate basic overall stats for non-comparison mode
+        if (result.success && result.products) {
+          const basicStats = {
+            current: {
+              total_annual_profit: result.products.reduce((sum, p) => sum + (p.annual_profit || 0), 0),
+              total_sold_qty: result.products.reduce((sum, p) => sum + (p.sold_qty || 0), 0),
+              avg_profit_per_unit: result.products.length > 0 ?
+                result.products.reduce((sum, p) => sum + (p.avg_profit_per_unit || 0), 0) / result.products.length : 0,
+              avg_gross_margin: result.products.length > 0 ?
+                result.products.reduce((sum, p) => sum + (p.avg_gross_margin || 0), 0) / result.products.length : 0,
+              total_products: result.products.length
+            },
+            previous: null,
+            changes: null
+          };
+          setOverallStats(basicStats);
+        } else {
+          setOverallStats(null);
+        }
       }
 
       if (result.success) {
@@ -193,6 +215,71 @@ const ProductsScreen = () => {
 
     return filtered;
   }, [sortedProducts, searchTerm, selectedOwner, showTasksOnly]);
+
+  /**
+   * Calculate overall stats based on filtered products
+   */
+  const calculateFilteredStats = useMemo(() => {
+    if (!filteredProducts.length) return null;
+
+    const currentStats = {
+      total_annual_profit: filteredProducts.reduce((sum, p) => sum + (p.annual_profit || 0), 0),
+      total_sold_qty: filteredProducts.reduce((sum, p) => sum + (p.sold_qty || 0), 0),
+      avg_profit_per_unit: filteredProducts.length > 0 ?
+        filteredProducts.reduce((sum, p) => sum + (p.avg_profit_per_unit || 0), 0) / filteredProducts.length : 0,
+      avg_gross_margin: filteredProducts.length > 0 ?
+        filteredProducts.reduce((sum, p) => sum + (p.avg_gross_margin || 0), 0) / filteredProducts.length : 0,
+      total_products: filteredProducts.length
+    };
+
+    if (!comparisonMode) {
+      return {
+        current: currentStats,
+        previous: null,
+        changes: null
+      };
+    }
+
+    // Calculate previous week stats from filtered products with comparison data
+    const filteredProductsWithPrevious = filteredProducts.filter(p => p.previous_week);
+    if (filteredProductsWithPrevious.length === 0) {
+      return {
+        current: currentStats,
+        previous: null,
+        changes: null
+      };
+    }
+
+    const previousStats = {
+      total_annual_profit: filteredProductsWithPrevious.reduce((sum, p) => sum + (p.previous_week.annual_profit || 0), 0),
+      total_sold_qty: filteredProductsWithPrevious.reduce((sum, p) => sum + (p.previous_week.sold_qty || 0), 0),
+      avg_profit_per_unit: filteredProductsWithPrevious.reduce((sum, p) => sum + (p.previous_week.avg_profit_per_unit || 0), 0) / filteredProductsWithPrevious.length,
+      total_products: filteredProductsWithPrevious.length
+    };
+
+    // Calculate changes
+    const changes = {
+      total_annual_profit_change: currentStats.total_annual_profit - previousStats.total_annual_profit,
+      total_annual_profit_change_percent: previousStats.total_annual_profit !== 0 ?
+        ((currentStats.total_annual_profit - previousStats.total_annual_profit) / previousStats.total_annual_profit * 100) : 0,
+      total_sold_qty_change: currentStats.total_sold_qty - previousStats.total_sold_qty,
+      total_sold_qty_change_percent: previousStats.total_sold_qty !== 0 ?
+        ((currentStats.total_sold_qty - previousStats.total_sold_qty) / previousStats.total_sold_qty * 100) : 0,
+      avg_profit_per_unit_change: currentStats.avg_profit_per_unit - previousStats.avg_profit_per_unit,
+      avg_profit_per_unit_change_percent: previousStats.avg_profit_per_unit !== 0 ?
+        ((currentStats.avg_profit_per_unit - previousStats.avg_profit_per_unit) / previousStats.avg_profit_per_unit * 100) : 0,
+      avg_gross_margin_change: currentStats.avg_gross_margin - previousStats.avg_gross_margin,
+      avg_gross_margin_change_percent: previousStats.avg_gross_margin !== 0 ?
+        ((currentStats.avg_gross_margin - previousStats.avg_gross_margin) / previousStats.avg_gross_margin * 100) : 0,
+      total_products_change: currentStats.total_products - previousStats.total_products
+    };
+
+    return {
+      current: currentStats,
+      previous: previousStats,
+      changes: changes
+    };
+  }, [filteredProducts, comparisonMode]);
 
   /**
    * Formats currency values for display
@@ -376,6 +463,14 @@ const ProductsScreen = () => {
             </span>
           </div>
         </div>
+      )}
+
+      {/* Overall Statistics Component - Show stats for filtered products */}
+      {calculateFilteredStats && (
+        <OverallStats
+          overallStats={calculateFilteredStats}
+          comparisonMode={comparisonMode}
+        />
       )}
 
       <div className="table-container">

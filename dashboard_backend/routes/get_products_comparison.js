@@ -50,6 +50,31 @@ Success Response:
     "previous_week": "2025-W26",
     "products_with_comparison": 150,
     "products_without_comparison": 25
+  },
+  "overall_stats": {
+    "current": {
+      "total_annual_profit": 125000.50,
+      "total_sold_qty": 4500,
+      "avg_profit_per_unit": 27.78,
+      "avg_gross_margin": 0.2450,
+      "total_products": 175
+    },
+    "previous": {
+      "total_annual_profit": 118000.25,
+      "total_sold_qty": 4200,
+      "avg_profit_per_unit": 28.10,
+      "avg_gross_margin": 0.2400,
+      "total_products": 150
+    },
+    "changes": {
+      "total_annual_profit_change": 7000.25,
+      "total_annual_profit_change_percent": 5.93,
+      "total_sold_qty_change": 300,
+      "total_sold_qty_change_percent": 7.14,
+      "avg_profit_per_unit_change": -0.32,
+      "avg_profit_per_unit_change_percent": -1.14,
+      "total_products_change": 25
+    }
   }
 }
 =======================================================================================================================================
@@ -214,8 +239,63 @@ router.post('/', async (req, res) => {
         // Calculate comparison statistics
         const productsWithComparison = products.filter(p => p.previous_week !== null).length;
         const productsWithoutComparison = products.length - productsWithComparison;
-        
-        // Return successful response
+
+        // Calculate overall statistics
+        const overallStats = {
+            current: {
+                total_annual_profit: products.reduce((sum, p) => sum + p.annual_profit, 0),
+                total_sold_qty: products.reduce((sum, p) => sum + p.sold_qty, 0),
+                avg_profit_per_unit: products.length > 0 ?
+                    products.reduce((sum, p) => sum + p.avg_profit_per_unit, 0) / products.length : 0,
+                avg_gross_margin: products.length > 0 ?
+                    products.reduce((sum, p) => sum + p.avg_gross_margin, 0) / products.length : 0,
+                total_products: products.length
+            },
+            previous: {
+                total_annual_profit: 0,
+                total_sold_qty: 0,
+                avg_profit_per_unit: 0,
+                avg_gross_margin: 0,
+                total_products: 0
+            },
+            changes: {
+                total_annual_profit_change: 0,
+                total_annual_profit_change_percent: 0,
+                total_sold_qty_change: 0,
+                total_sold_qty_change_percent: 0,
+                avg_profit_per_unit_change: 0,
+                avg_profit_per_unit_change_percent: 0,
+                avg_gross_margin_change: 0,
+                avg_gross_margin_change_percent: 0,
+                total_products_change: 0
+            }
+        };
+
+        // Calculate previous week totals from products with comparison data
+        const productsWithPreviousData = products.filter(p => p.previous_week);
+        if (productsWithPreviousData.length > 0) {
+            overallStats.previous.total_annual_profit = productsWithPreviousData.reduce((sum, p) => sum + p.previous_week.annual_profit, 0);
+            overallStats.previous.total_sold_qty = productsWithPreviousData.reduce((sum, p) => sum + p.previous_week.sold_qty, 0);
+            overallStats.previous.avg_profit_per_unit = productsWithPreviousData.reduce((sum, p) => sum + p.previous_week.avg_profit_per_unit, 0) / productsWithPreviousData.length;
+            overallStats.previous.total_products = productsWithPreviousData.length;
+
+            // Calculate changes
+            overallStats.changes.total_annual_profit_change = overallStats.current.total_annual_profit - overallStats.previous.total_annual_profit;
+            overallStats.changes.total_annual_profit_change_percent = overallStats.previous.total_annual_profit !== 0 ?
+                ((overallStats.current.total_annual_profit - overallStats.previous.total_annual_profit) / overallStats.previous.total_annual_profit * 100) : 0;
+
+            overallStats.changes.total_sold_qty_change = overallStats.current.total_sold_qty - overallStats.previous.total_sold_qty;
+            overallStats.changes.total_sold_qty_change_percent = overallStats.previous.total_sold_qty !== 0 ?
+                ((overallStats.current.total_sold_qty - overallStats.previous.total_sold_qty) / overallStats.previous.total_sold_qty * 100) : 0;
+
+            overallStats.changes.avg_profit_per_unit_change = overallStats.current.avg_profit_per_unit - overallStats.previous.avg_profit_per_unit;
+            overallStats.changes.avg_profit_per_unit_change_percent = overallStats.previous.avg_profit_per_unit !== 0 ?
+                ((overallStats.current.avg_profit_per_unit - overallStats.previous.avg_profit_per_unit) / overallStats.previous.avg_profit_per_unit * 100) : 0;
+
+            overallStats.changes.total_products_change = overallStats.current.total_products - overallStats.previous.total_products;
+        }
+
+        // Return successful response with products, comparison info, and overall stats
         res.json({
             return_code: "SUCCESS",
             products: products,
@@ -225,7 +305,8 @@ router.post('/', async (req, res) => {
                 products_with_comparison: productsWithComparison,
                 products_without_comparison: productsWithoutComparison,
                 total_products: products.length
-            }
+            },
+            overall_stats: overallStats
         });
         
         console.log('GET_PRODUCTS_COMPARISON: Response sent successfully');

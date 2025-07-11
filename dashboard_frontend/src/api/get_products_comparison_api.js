@@ -69,7 +69,8 @@ export const getProductsComparison = async () => {
         success: true,
         data: response.data,
         products: response.data.products,
-        comparisonInfo: response.data.comparison_info
+        comparisonInfo: response.data.comparison_info,
+        overallStats: response.data.overall_stats
       };
     } else {
       // Backend returned an error code
