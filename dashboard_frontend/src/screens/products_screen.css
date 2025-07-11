@@ -110,6 +110,9 @@
 
 .comparison-filter-container {
   min-width: 160px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .comparison-filter-toggle {
@@ -138,6 +141,29 @@
 .comparison-filter-toggle.active:hover {
   background-color: #d35400;
   border-color: #d35400;
+}
+
+.comparison-period-select {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e1e8ed;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  min-width: 140px;
+}
+
+.comparison-period-select:hover {
+  border-color: #bdc3c7;
+  background-color: #f8f9fa;
+}
+
+.comparison-period-select:focus {
+  outline: none;
+  border-color: #e67e22;
+  box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1);
 }
 
 .products-summary {
@@ -447,6 +473,13 @@
 
   .comparison-filter-container {
     min-width: auto;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .comparison-period-select {
+    min-width: auto;
+    width: 100%;
   }
 
   .products-summary {

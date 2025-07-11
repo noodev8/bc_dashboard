@@ -26,6 +26,7 @@ const ProductsScreen = () => {
   const [selectedOwner, setSelectedOwner] = useState('');
   const [showTasksOnly, setShowTasksOnly] = useState(false);
   const [comparisonMode, setComparisonMode] = useState(false);
+  const [comparisonPeriod, setComparisonPeriod] = useState('week');
   const [comparisonInfo, setComparisonInfo] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
 
@@ -34,12 +35,12 @@ const ProductsScreen = () => {
     loadInitialData();
   }, []);
 
-  // Reload products when comparison mode changes
+  // Reload products when comparison mode or period changes
   useEffect(() => {
     if (products.length > 0) { // Only reload if we already have products loaded
       loadProducts();
     }
-  }, [comparisonMode]);
+  }, [comparisonMode, comparisonPeriod]);
 
   /**
    * Loads both products and owners data
@@ -67,7 +68,7 @@ const ProductsScreen = () => {
 
       let result;
       if (comparisonMode) {
-        result = await getProductsComparison();
+        result = await getProductsComparison(comparisonPeriod);
         if (result.success) {
           setComparisonInfo(result.comparisonInfo);
           setOverallStats(result.overallStats);
@@ -440,10 +441,22 @@ const ProductsScreen = () => {
             <button
               onClick={() => setComparisonMode(!comparisonMode)}
               className={`comparison-filter-toggle ${comparisonMode ? 'active' : ''}`}
-              title={comparisonMode ? 'Showing week-over-week comparison' : 'Showing current data only'}
+              title={comparisonMode ? 'Showing comparison data' : 'Showing current data only'}
             >
               {comparisonMode ? '📊 Comparison' : '📈 Current'}
             </button>
+
+            {comparisonMode && (
+              <select
+                value={comparisonPeriod}
+                onChange={(e) => setComparisonPeriod(e.target.value)}
+                className="comparison-period-select"
+                title="Select comparison period"
+              >
+                <option value="week">vs Previous Week</option>
+                <option value="month">vs Last Month</option>
+              </select>
+            )}
           </div>
         </div>
 

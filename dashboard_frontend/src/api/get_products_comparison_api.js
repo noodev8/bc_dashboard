@@ -50,15 +50,18 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * Fetches products with week-over-week comparison data from the backend API
+ * Fetches products with comparison data from the backend API
+ * @param {string} comparisonPeriod - Either 'week' or 'month' for comparison period
  * @returns {Promise<Object>} Promise that resolves to the API response
  */
-export const getProductsComparison = async () => {
+export const getProductsComparison = async (comparisonPeriod = 'week') => {
   try {
     console.log('API: Fetching products comparison from backend...');
     
     // Make POST request to get_products_comparison endpoint
-    const response = await apiClient.post('/get_products_comparison', {});
+    const response = await apiClient.post('/get_products_comparison', {
+      comparison_period: comparisonPeriod
+    });
     
     console.log('API: Products comparison fetched successfully');
     console.log(`API: Retrieved ${response.data.products?.length} products with comparison`);

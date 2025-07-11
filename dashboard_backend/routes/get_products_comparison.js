@@ -8,7 +8,7 @@ Purpose: Retrieves current SHP products with comparison to previous week's perfo
 =======================================================================================================================================
 Request Payload:
 {
-  // No specific payload required - endpoint returns current vs previous week comparison
+  "comparison_period": "week" | "month"  // Optional, defaults to "week"
 }
 
 Success Response:
@@ -93,29 +93,65 @@ const db = require('../db');
 router.post('/', async (req, res) => {
     try {
         console.log('GET_PRODUCTS_COMPARISON: Starting products comparison retrieval...');
-        
-        // Get current week in YYYY-WW format
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
-        
-        // Calculate week number (ISO week)
-        const startOfYear = new Date(currentYear, 0, 1);
-        const pastDaysOfYear = (currentDate - startOfYear) / 86400000;
-        const currentWeekNum = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
-        const currentWeek = `${currentYear}-W${currentWeekNum.toString().padStart(2, '0')}`;
-        
-        // Calculate previous week
-        let prevWeekNum = currentWeekNum - 1;
-        let prevYear = currentYear;
-        if (prevWeekNum < 1) {
-            prevYear = currentYear - 1;
-            prevWeekNum = 52; // Approximate last week of previous year
+
+        // Get comparison period from request body (defaults to "week")
+        const comparisonPeriod = req.body.comparison_period || 'week';
+        console.log(`GET_PRODUCTS_COMPARISON: Comparison period: ${comparisonPeriod}`);
+
+        // First, find the actual current week from the database (highest week number)
+        const currentWeekQuery = `
+            SELECT year_week
+            FROM groupid_performance_week
+            WHERE channel = 'SHP'
+            ORDER BY year_week DESC
+            LIMIT 1
+        `;
+
+        const currentWeekResult = await db.query(currentWeekQuery);
+        const actualCurrentWeek = currentWeekResult.rows.length > 0 ? currentWeekResult.rows[0].year_week : null;
+
+        if (!actualCurrentWeek) {
+            throw new Error('No week data found in groupid_performance_week table');
         }
-        const previousWeek = `${prevYear}-W${prevWeekNum.toString().padStart(2, '0')}`;
-        
-        console.log(`GET_PRODUCTS_COMPARISON: Comparing ${currentWeek} vs ${previousWeek}`);
-        
-        // SQL query to get current products with previous week comparison
+
+        console.log(`GET_PRODUCTS_COMPARISON: Database current week: ${actualCurrentWeek}`);
+
+        // Parse the actual current week to get year and week number
+        const [actualYear, actualWeekStr] = actualCurrentWeek.split('-W');
+        const actualWeekNum = parseInt(actualWeekStr);
+
+        // Calculate comparison week based on actual data
+        let comparisonWeek;
+        let comparisonLabel;
+
+        if (comparisonPeriod === 'month') {
+            // Compare against 4 weeks ago from the actual current week
+            let monthAgoWeekNum = actualWeekNum - 4;
+            let monthAgoYear = parseInt(actualYear);
+            if (monthAgoWeekNum < 1) {
+                // Handle year boundary
+                monthAgoYear = monthAgoYear - 1;
+                monthAgoWeekNum = 52 + monthAgoWeekNum;
+            }
+            comparisonWeek = `${monthAgoYear}-W${monthAgoWeekNum.toString().padStart(2, '0')}`;
+            comparisonLabel = 'Last Month (4 weeks ago)';
+        } else {
+            // Compare against previous week from actual current week
+            let prevWeekNum = actualWeekNum - 1;
+            let prevYear = parseInt(actualYear);
+            if (prevWeekNum < 1) {
+                prevYear = prevYear - 1;
+                prevWeekNum = 52;
+            }
+            comparisonWeek = `${prevYear}-W${prevWeekNum.toString().padStart(2, '0')}`;
+            comparisonLabel = 'Previous Week';
+        }
+
+        console.log(`GET_PRODUCTS_COMPARISON: Comparing ${actualCurrentWeek} vs ${comparisonWeek} (${comparisonLabel})`);
+
+
+
+        // SQL query to get current products with comparison data
         const query = `
             WITH current_products AS (
                 SELECT 
@@ -198,7 +234,7 @@ router.post('/', async (req, res) => {
         console.log('GET_PRODUCTS_COMPARISON: Executing database query...');
         
         // Execute the query
-        const result = await db.query(query, [previousWeek]);
+        const result = await db.query(query, [comparisonWeek]);
         
         console.log(`GET_PRODUCTS_COMPARISON: Query successful. Retrieved ${result.rows.length} products`);
         
@@ -300,8 +336,10 @@ router.post('/', async (req, res) => {
             return_code: "SUCCESS",
             products: products,
             comparison_info: {
-                current_week: currentWeek,
-                previous_week: previousWeek,
+                current_week: actualCurrentWeek,
+                comparison_week: comparisonWeek,
+                comparison_period: comparisonPeriod,
+                comparison_label: comparisonLabel,
                 products_with_comparison: productsWithComparison,
                 products_without_comparison: productsWithoutComparison,
                 total_products: products.length
