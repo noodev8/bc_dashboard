@@ -51,14 +51,19 @@ apiClient.interceptors.response.use(
 
 /**
  * Fetches all products from the backend API
+ * @param {Object} params - Optional parameters for filtering
+ * @param {string} params.season_filter - Optional season filter ('summer' or 'winter')
  * @returns {Promise<Object>} Promise that resolves to the API response
  */
-export const getProducts = async () => {
+export const getProducts = async (params = {}) => {
   try {
     console.log('API: Fetching products from backend...');
-    
+    if (params.season_filter) {
+      console.log(`API: Applying season filter: ${params.season_filter}`);
+    }
+
     // Make POST request to get_products endpoint
-    const response = await apiClient.post('/get_products', {});
+    const response = await apiClient.post('/get_products', params);
     
     console.log('API: Products fetched successfully');
     console.log(`API: Retrieved ${response.data.total_count} products`);

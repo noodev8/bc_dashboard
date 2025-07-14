@@ -108,6 +108,43 @@
   border-color: #2980b9;
 }
 
+/* Season Filter Styles */
+.season-filter-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.season-filter-toggle {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e1e8ed;
+  border-radius: 6px;
+  background-color: white;
+  color: #666;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.season-filter-toggle:hover {
+  border-color: #bdc3c7;
+  background-color: #f8f9fa;
+}
+
+.season-filter-toggle.active {
+  background-color: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.season-filter-toggle.active:hover {
+  background-color: #2980b9;
+  border-color: #2980b9;
+}
+
 .comparison-filter-container {
   min-width: 160px;
   display: flex;

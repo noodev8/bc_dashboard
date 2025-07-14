@@ -5,11 +5,11 @@ API Route: get_products
 Method: POST
 Purpose: Retrieves SHP channel products from the groupid_performance table ordered by annual_profit in descending order.
          This endpoint provides the main data for the products dashboard display, filtered to show only Shopify (SHP) products.
+         Supports optional seasonal filtering to show only summer or winter products.
 =======================================================================================================================================
 Request Payload:
 {
-  // No specific payload required - endpoint returns all products
-  // Optional: Could add pagination or filtering parameters in future
+  "season_filter": "summer" | "winter"    // optional, filters products by season from skusummary table
 }
 
 Success Response:
@@ -50,19 +50,43 @@ const db = require('../db');
 router.post('/', async (req, res) => {
     try {
         console.log('GET_PRODUCTS: Starting product retrieval...');
-        
-        // SQL query to get SHP channel products only, ordered by annual profit descending
-        const query = `
-            SELECT *
-            FROM groupid_performance
-            WHERE channel = 'SHP'
-            ORDER BY annual_profit DESC NULLS LAST
+
+        // Get season filter from request body (optional)
+        const seasonFilter = req.body.season_filter;
+        console.log(`GET_PRODUCTS: Season filter: ${seasonFilter || 'none'}`);
+
+        // Build SQL query with optional season filtering
+        let query = `
+            SELECT gp.*
+            FROM groupid_performance gp
         `;
-        
+
+        // Add join with skusummary if season filter is provided
+        if (seasonFilter) {
+            query += `
+            LEFT JOIN skusummary ss ON gp.groupid = ss.groupid
+            `;
+        }
+
+        query += `
+            WHERE gp.channel = 'SHP'
+        `;
+
+        // Add season filter condition if provided
+        if (seasonFilter) {
+            query += ` AND ss.season = $1`;
+        }
+
+        query += `
+            ORDER BY gp.annual_profit DESC NULLS LAST
+        `;
+
         console.log('GET_PRODUCTS: Executing database query...');
-        
-        // Execute the query
-        const result = await db.query(query);
+
+        // Execute the query with or without season parameter
+        const result = seasonFilter ?
+            await db.query(query, [seasonFilter]) :
+            await db.query(query);
         
         console.log(`GET_PRODUCTS: Query successful. Retrieved ${result.rows.length} products`);
         

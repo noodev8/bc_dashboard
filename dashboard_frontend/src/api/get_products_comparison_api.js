@@ -51,17 +51,27 @@ apiClient.interceptors.response.use(
 
 /**
  * Fetches products with comparison data from the backend API
- * @param {string} comparisonPeriod - Either 'week' or 'month' for comparison period
+ * @param {Object} params - Parameters for the comparison request
+ * @param {string} params.comparison_period - Either 'week' or 'month' for comparison period
+ * @param {string} params.season_filter - Optional season filter ('summer' or 'winter')
  * @returns {Promise<Object>} Promise that resolves to the API response
  */
-export const getProductsComparison = async (comparisonPeriod = 'week') => {
+export const getProductsComparison = async (params = {}) => {
   try {
     console.log('API: Fetching products comparison from backend...');
-    
+
+    // Set default comparison period if not provided
+    const requestPayload = {
+      comparison_period: params.comparison_period || 'week',
+      ...params
+    };
+
+    if (requestPayload.season_filter) {
+      console.log(`API: Applying season filter: ${requestPayload.season_filter}`);
+    }
+
     // Make POST request to get_products_comparison endpoint
-    const response = await apiClient.post('/get_products_comparison', {
-      comparison_period: comparisonPeriod
-    });
+    const response = await apiClient.post('/get_products_comparison', requestPayload);
     
     console.log('API: Products comparison fetched successfully');
     console.log(`API: Retrieved ${response.data.products?.length} products with comparison`);

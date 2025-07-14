@@ -8,7 +8,8 @@ Purpose: Retrieves current SHP products with comparison to previous week's perfo
 =======================================================================================================================================
 Request Payload:
 {
-  "comparison_period": "week" | "month"  // Optional, defaults to "week"
+  "comparison_period": "week" | "month",  // Optional, defaults to "week"
+  "season_filter": "summer" | "winter"    // Optional, filters products by season from skusummary table
 }
 
 Success Response:
@@ -97,6 +98,10 @@ router.post('/', async (req, res) => {
         // Get comparison period from request body (defaults to "week")
         const comparisonPeriod = req.body.comparison_period || 'week';
         console.log(`GET_PRODUCTS_COMPARISON: Comparison period: ${comparisonPeriod}`);
+
+        // Get season filter from request body (optional)
+        const seasonFilter = req.body.season_filter;
+        console.log(`GET_PRODUCTS_COMPARISON: Season filter: ${seasonFilter || 'none'}`);
 
         // First, find the actual current week from the database (highest week number)
         const currentWeekQuery = `
@@ -192,23 +197,35 @@ router.post('/', async (req, res) => {
 
 
         // SQL query to get current products with comparison data
+        let queryParams = [comparisonWeek];
+        let seasonJoinCondition = '';
+        let seasonWhereCondition = '';
+
+        if (seasonFilter) {
+            queryParams.push(seasonFilter);
+            seasonJoinCondition = 'LEFT JOIN skusummary ss ON gp.groupid = ss.groupid';
+            seasonWhereCondition = `AND ss.season = $${queryParams.length}`;
+        }
+
         const query = `
             WITH current_products AS (
-                SELECT 
-                    groupid,
-                    channel,
-                    annual_profit,
-                    sold_qty,
-                    avg_profit_per_unit,
-                    segment,
-                    notes,
-                    owner,
-                    brand,
-                    next_review_date,
-                    review_date,
-                    avg_gross_margin
-                FROM groupid_performance 
-                WHERE channel = 'SHP'
+                SELECT
+                    gp.groupid,
+                    gp.channel,
+                    gp.annual_profit,
+                    gp.sold_qty,
+                    gp.avg_profit_per_unit,
+                    gp.segment,
+                    gp.notes,
+                    gp.owner,
+                    gp.brand,
+                    gp.next_review_date,
+                    gp.review_date,
+                    gp.avg_gross_margin
+                FROM groupid_performance gp
+                ${seasonJoinCondition}
+                WHERE gp.channel = 'SHP'
+                ${seasonWhereCondition}
             ),
             previous_week_data AS (
                 SELECT 
@@ -272,9 +289,9 @@ router.post('/', async (req, res) => {
         `;
         
         console.log('GET_PRODUCTS_COMPARISON: Executing database query...');
-        
-        // Execute the query
-        const result = await db.query(query, [comparisonWeek]);
+
+        // Execute the query with dynamic parameters
+        const result = await db.query(query, queryParams);
         
         console.log(`GET_PRODUCTS_COMPARISON: Query successful. Retrieved ${result.rows.length} products`);
         

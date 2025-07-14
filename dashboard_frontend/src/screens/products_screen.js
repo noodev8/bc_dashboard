@@ -29,18 +29,19 @@ const ProductsScreen = () => {
   const [comparisonPeriod, setComparisonPeriod] = useState('week');
   const [comparisonInfo, setComparisonInfo] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
+  const [seasonFilter, setSeasonFilter] = useState('');
 
   // Load products and owners data on component mount
   useEffect(() => {
     loadInitialData();
   }, []);
 
-  // Reload products when comparison mode or period changes
+  // Reload products when comparison mode, period, or season filter changes
   useEffect(() => {
     if (products.length > 0) { // Only reload if we already have products loaded
       loadProducts();
     }
-  }, [comparisonMode, comparisonPeriod]);
+  }, [comparisonMode, comparisonPeriod, seasonFilter]);
 
   /**
    * Loads both products and owners data
@@ -66,15 +67,24 @@ const ProductsScreen = () => {
     try {
       console.log(`PRODUCTS_SCREEN: Loading products (comparison mode: ${comparisonMode})...`);
 
+      // Prepare request payload with optional season filter
+      const requestPayload = {};
+      if (seasonFilter) {
+        requestPayload.season_filter = seasonFilter;
+      }
+
       let result;
       if (comparisonMode) {
-        result = await getProductsComparison(comparisonPeriod);
+        result = await getProductsComparison({
+          comparison_period: comparisonPeriod,
+          ...requestPayload
+        });
         if (result.success) {
           setComparisonInfo(result.comparisonInfo);
           setOverallStats(result.overallStats);
         }
       } else {
-        result = await getProducts();
+        result = await getProducts(requestPayload);
         setComparisonInfo(null);
         // Calculate basic overall stats for non-comparison mode
         if (result.success && result.products) {
@@ -434,6 +444,23 @@ const ProductsScreen = () => {
               title={showTasksOnly ? 'Showing products that need review (no date or overdue)' : 'Showing all products'}
             >
               {showTasksOnly ? '📋 Tasks' : '📅 All Products'}
+            </button>
+          </div>
+
+          <div className="season-filter-container">
+            <button
+              onClick={() => setSeasonFilter(seasonFilter === 'Summer' ? '' : 'Summer')}
+              className={`season-filter-toggle ${seasonFilter === 'Summer' ? 'active' : ''}`}
+              title={seasonFilter === 'Summer' ? 'Showing summer products only' : 'Show summer products only'}
+            >
+              ☀️ Summer
+            </button>
+            <button
+              onClick={() => setSeasonFilter(seasonFilter === 'Winter' ? '' : 'Winter')}
+              className={`season-filter-toggle ${seasonFilter === 'Winter' ? 'active' : ''}`}
+              title={seasonFilter === 'Winter' ? 'Showing winter products only' : 'Show winter products only'}
+            >
+              ❄️ Winter
             </button>
           </div>
 
