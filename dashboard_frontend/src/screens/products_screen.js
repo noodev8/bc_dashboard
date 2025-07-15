@@ -5,7 +5,7 @@ Shows key performance metrics including annual profit, quantity sold, and profit
 Provides filtering and sorting capabilities for better data analysis
 */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { getProducts } from '../api/get_products_api';
 import { getOwners } from '../api/get_owners_api';
 import { getProductsComparison } from '../api/get_products_comparison_api';
@@ -30,6 +30,10 @@ const ProductsScreen = () => {
   const [comparisonInfo, setComparisonInfo] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
   const [seasonFilter, setSeasonFilter] = useState('');
+  const [showSeasonDropdown, setShowSeasonDropdown] = useState(false);
+
+  // Ref for season filter dropdown
+  const seasonDropdownRef = useRef(null);
 
   // Load products and owners data on component mount
   useEffect(() => {
@@ -42,6 +46,25 @@ const ProductsScreen = () => {
       loadProducts();
     }
   }, [comparisonMode, comparisonPeriod, seasonFilter]);
+
+  // Handle clicks outside of the season dropdown to close it
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (seasonDropdownRef.current && !seasonDropdownRef.current.contains(event.target)) {
+        setShowSeasonDropdown(false);
+      }
+    }
+
+    // Add event listener when dropdown is shown
+    if (showSeasonDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Clean up the event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSeasonDropdown]);
 
   /**
    * Loads both products and owners data
@@ -447,22 +470,7 @@ const ProductsScreen = () => {
             </button>
           </div>
 
-          <div className="season-filter-container">
-            <button
-              onClick={() => setSeasonFilter(seasonFilter === 'Summer' ? '' : 'Summer')}
-              className={`season-filter-toggle ${seasonFilter === 'Summer' ? 'active' : ''}`}
-              title={seasonFilter === 'Summer' ? 'Showing summer products only' : 'Show summer products only'}
-            >
-              ☀️ Summer
-            </button>
-            <button
-              onClick={() => setSeasonFilter(seasonFilter === 'Winter' ? '' : 'Winter')}
-              className={`season-filter-toggle ${seasonFilter === 'Winter' ? 'active' : ''}`}
-              title={seasonFilter === 'Winter' ? 'Showing winter products only' : 'Show winter products only'}
-            >
-              ❄️ Winter
-            </button>
-          </div>
+
 
           <div className="comparison-filter-container">
             <button
@@ -489,6 +497,46 @@ const ProductsScreen = () => {
 
         <div className="products-summary">
           <span>Showing {filteredProducts.length} of {products.length} products</span>
+          <div className="season-filter-container" ref={seasonDropdownRef}>
+            <button
+              onClick={() => setShowSeasonDropdown(!showSeasonDropdown)}
+              className={`season-filter-button ${seasonFilter ? 'active' : ''}`}
+              title="Filter by season"
+            >
+              🔍
+            </button>
+            {showSeasonDropdown && (
+              <div className="season-dropdown">
+                <button
+                  onClick={() => {
+                    setSeasonFilter('');
+                    setShowSeasonDropdown(false);
+                  }}
+                  className={`season-option ${seasonFilter === '' ? 'active' : ''}`}
+                >
+                  All Seasons
+                </button>
+                <button
+                  onClick={() => {
+                    setSeasonFilter('Summer');
+                    setShowSeasonDropdown(false);
+                  }}
+                  className={`season-option ${seasonFilter === 'Summer' ? 'active' : ''}`}
+                >
+                  ☀️ Summer
+                </button>
+                <button
+                  onClick={() => {
+                    setSeasonFilter('Winter');
+                    setShowSeasonDropdown(false);
+                  }}
+                  className={`season-option ${seasonFilter === 'Winter' ? 'active' : ''}`}
+                >
+                  ❄️ Winter
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

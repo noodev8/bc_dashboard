@@ -113,36 +113,80 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
 }
 
-.season-filter-toggle {
-  padding: 0.5rem 0.75rem;
+.season-filter-button {
+  padding: 0.5rem;
   border: 2px solid #e1e8ed;
   border-radius: 6px;
   background-color: white;
   color: #666;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  min-width: 80px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.season-filter-toggle:hover {
+.season-filter-button:hover {
   border-color: #bdc3c7;
   background-color: #f8f9fa;
 }
 
-.season-filter-toggle.active {
+.season-filter-button.active {
   background-color: #3498db;
   color: white;
   border-color: #3498db;
 }
 
-.season-filter-toggle.active:hover {
+.season-filter-button.active:hover {
   background-color: #2980b9;
   border-color: #2980b9;
+}
+
+.season-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0; /* Align with right side of button */
+  z-index: 10;
+  background-color: white;
+  border: 2px solid #e1e8ed;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 0.5rem;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+}
+
+.season-option {
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: none;
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.season-option:hover {
+  background-color: #f8f9fa;
+}
+
+.season-option.active {
+  background-color: #ebf5fb;
+  color: #3498db;
+  font-weight: 500;
+}
+
+.season-option:not(:last-child) {
+  border-bottom: 1px solid #e1e8ed;
 }
 
 .comparison-filter-container {
@@ -208,6 +252,9 @@
   color: #666;
   font-size: 0.9rem;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 /* Comparison Info Banner */
@@ -509,6 +556,21 @@
     min-width: auto;
   }
 
+  .season-filter-container {
+    margin-left: 0; /* Reset margin on mobile */
+    width: auto;
+  }
+
+  .season-filter-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .season-dropdown {
+    right: 0; /* Keep aligned to right on mobile */
+    min-width: 150px;
+  }
+
   .comparison-filter-container {
     min-width: auto;
     flex-direction: column;
@@ -524,6 +586,7 @@
   .products-summary {
     text-align: center;
     margin-top: 0.5rem;
+    justify-content: center;
   }
 
   .comparison-details {
