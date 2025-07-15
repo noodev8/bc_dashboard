@@ -130,16 +130,44 @@ router.post('/', async (req, res) => {
         let comparisonLabel;
 
         if (comparisonPeriod === 'month') {
-            // Compare against 4 weeks ago from the actual current week
-            let monthAgoWeekNum = actualWeekNum - 4;
-            let monthAgoYear = parseInt(actualYear);
-            if (monthAgoWeekNum < 1) {
-                // Handle year boundary
-                monthAgoYear = monthAgoYear - 1;
-                monthAgoWeekNum = 52 + monthAgoWeekNum;
+            // For month comparison, use the earliest available week to maximize time difference
+            console.log(`GET_PRODUCTS_COMPARISON: Finding earliest available week for month comparison`);
+
+            // Get the earliest available week
+            const earliestWeekQuery = `
+                SELECT year_week
+                FROM groupid_performance_week
+                WHERE channel = 'SHP'
+                ORDER BY year_week ASC
+                LIMIT 1
+            `;
+
+            const earliestResult = await db.query(earliestWeekQuery, []);
+
+            if (earliestResult.rows.length > 0) {
+                const earliestWeek = earliestResult.rows[0].year_week;
+
+                // Only use the earliest week if it's different from the current week
+                if (earliestWeek !== actualCurrentWeek) {
+                    comparisonWeek = earliestWeek;
+
+                    // Calculate how many weeks back this actually is
+                    const [oldYear, oldWeekStr] = earliestWeek.split('-W');
+                    const oldWeekNum = parseInt(oldWeekStr);
+                    const weeksBack = actualWeekNum - oldWeekNum;
+
+                    comparisonLabel = weeksBack === 1 ? 'Last Week' : `${weeksBack} weeks ago`;
+                    console.log(`GET_PRODUCTS_COMPARISON: Using earliest week ${comparisonWeek} (${comparisonLabel}) for month comparison`);
+                } else {
+                    console.log(`GET_PRODUCTS_COMPARISON: Only one week of data available, cannot perform comparison`);
+                    comparisonWeek = null;
+                    comparisonLabel = 'No comparison data available';
+                }
+            } else {
+                console.log(`GET_PRODUCTS_COMPARISON: No historical data available for comparison`);
+                comparisonWeek = null;
+                comparisonLabel = 'No comparison data available';
             }
-            comparisonWeek = `${monthAgoYear}-W${monthAgoWeekNum.toString().padStart(2, '0')}`;
-            comparisonLabel = 'Last Month (4 weeks ago)';
         } else {
             // Compare against previous week from actual current week
             let prevWeekNum = actualWeekNum - 1;
@@ -152,49 +180,110 @@ router.post('/', async (req, res) => {
             comparisonLabel = 'Previous Week';
         }
 
-        // Check if the calculated comparison week has data, if not find the best available
-        const checkWeekQuery = `
-            SELECT COUNT(*) as count
-            FROM groupid_performance_week
-            WHERE channel = 'SHP' AND year_week = $1
-        `;
-
-        const checkResult = await db.query(checkWeekQuery, [comparisonWeek]);
-        const hasData = parseInt(checkResult.rows[0].count) > 0;
-
-        if (!hasData && comparisonPeriod === 'month') {
-            console.log(`GET_PRODUCTS_COMPARISON: No data for ${comparisonWeek}, finding oldest available week`);
-
-            // Get all available weeks older than current week
-            const availableWeeksQuery = `
-                SELECT year_week
+        // For week comparison, check if the calculated comparison week has data
+        if (comparisonPeriod === 'week' && comparisonWeek) {
+            const checkWeekQuery = `
+                SELECT COUNT(*) as count
                 FROM groupid_performance_week
-                WHERE channel = 'SHP'
-                  AND year_week < $1
-                ORDER BY year_week DESC
-                LIMIT 5
+                WHERE channel = 'SHP' AND year_week = $1
             `;
 
-            const availableResult = await db.query(availableWeeksQuery, [actualCurrentWeek]);
+            const checkResult = await db.query(checkWeekQuery, [comparisonWeek]);
+            const hasData = parseInt(checkResult.rows[0].count) > 0;
 
-            if (availableResult.rows.length > 0) {
-                // Use the oldest available week (last in the DESC ordered list)
-                const oldestAvailable = availableResult.rows[availableResult.rows.length - 1].year_week;
-                comparisonWeek = oldestAvailable;
-
-                // Calculate how many weeks back this actually is
-                const [oldYear, oldWeekStr] = oldestAvailable.split('-W');
-                const oldWeekNum = parseInt(oldWeekStr);
-                const weeksBack = actualWeekNum - oldWeekNum;
-
-                comparisonLabel = weeksBack === 1 ? 'Previous Week' : `${weeksBack} weeks ago`;
-                console.log(`GET_PRODUCTS_COMPARISON: Using oldest available: ${comparisonWeek} (${comparisonLabel})`);
+            if (!hasData) {
+                console.log(`GET_PRODUCTS_COMPARISON: No data for week comparison ${comparisonWeek}`);
+                comparisonWeek = null;
+                comparisonLabel = 'No comparison data available';
             }
         }
 
-        console.log(`GET_PRODUCTS_COMPARISON: Final comparison: ${actualCurrentWeek} vs ${comparisonWeek} (${comparisonLabel})`);
+        console.log(`GET_PRODUCTS_COMPARISON: Final comparison: ${actualCurrentWeek} vs ${comparisonWeek || 'none'} (${comparisonLabel})`);
 
+        // If no comparison week is available, return current data without comparison
+        if (!comparisonWeek) {
+            console.log(`GET_PRODUCTS_COMPARISON: No comparison data available, returning current data only`);
 
+            // Return current products without comparison data
+            let seasonJoinCondition = '';
+            let seasonWhereCondition = '';
+            let queryParams = [];
+
+            if (seasonFilter) {
+                queryParams.push(seasonFilter);
+                seasonJoinCondition = 'LEFT JOIN skusummary ss ON gp.groupid = ss.groupid';
+                seasonWhereCondition = `AND ss.season = $${queryParams.length}`;
+            }
+
+            const currentOnlyQuery = `
+                SELECT
+                    gp.groupid,
+                    gp.channel,
+                    gp.annual_profit,
+                    gp.sold_qty,
+                    gp.avg_profit_per_unit,
+                    gp.segment,
+                    gp.notes,
+                    gp.owner,
+                    gp.brand,
+                    gp.next_review_date,
+                    gp.review_date,
+                    gp.avg_gross_margin
+                FROM groupid_performance gp
+                ${seasonJoinCondition}
+                WHERE gp.channel = 'SHP'
+                ${seasonWhereCondition}
+                ORDER BY gp.annual_profit DESC NULLS LAST
+            `;
+
+            const currentResult = await db.query(currentOnlyQuery, queryParams);
+
+            const products = currentResult.rows.map(row => ({
+                groupid: row.groupid,
+                channel: row.channel,
+                annual_profit: parseFloat(row.annual_profit) || 0,
+                sold_qty: row.sold_qty || 0,
+                avg_profit_per_unit: parseFloat(row.avg_profit_per_unit) || 0,
+                segment: row.segment,
+                notes: row.notes,
+                owner: row.owner,
+                brand: row.brand,
+                next_review_date: row.next_review_date,
+                review_date: row.review_date,
+                avg_gross_margin: parseFloat(row.avg_gross_margin) || 0,
+                previous_week: null,
+                changes: null
+            }));
+
+            // Calculate overall statistics without comparison
+            const overallStats = {
+                current: {
+                    total_annual_profit: products.reduce((sum, p) => sum + p.annual_profit, 0),
+                    total_sold_qty: products.reduce((sum, p) => sum + p.sold_qty, 0),
+                    avg_profit_per_unit: products.length > 0 ?
+                        products.reduce((sum, p) => sum + p.avg_profit_per_unit, 0) / products.length : 0,
+                    avg_gross_margin: products.length > 0 ?
+                        products.reduce((sum, p) => sum + p.avg_gross_margin, 0) / products.length : 0,
+                    total_products: products.length
+                },
+                changes: null
+            };
+
+            return res.json({
+                return_code: "SUCCESS",
+                products: products,
+                comparison_info: {
+                    current_week: actualCurrentWeek,
+                    comparison_week: null,
+                    comparison_period: comparisonPeriod,
+                    comparison_label: comparisonLabel,
+                    products_with_comparison: 0,
+                    products_without_comparison: products.length,
+                    total_products: products.length
+                },
+                overall_stats: overallStats
+            });
+        }
 
         // SQL query to get current products with comparison data
         let queryParams = [comparisonWeek];
