@@ -6,7 +6,7 @@ historical weekly performance trends, and SKU details
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProductDetails } from '../api/get_product_details_api';
+import { getProductDetails, getMorePriceChanges } from '../api/get_product_details_api';
 import './product_details_screen.css';
 
 const ProductDetailsScreen = () => {
@@ -15,11 +15,14 @@ const ProductDetailsScreen = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [pricePagination, setPricePagination] = useState(null);
+  const [loadingMorePrices, setLoadingMorePrices] = useState(false);
 
   // Load product details on component mount
   useEffect(() => {
     loadProductDetails();
-  }, [groupid]);
+  }, [groupid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Fetches product details from the API
@@ -35,6 +38,8 @@ const ProductDetailsScreen = () => {
       
       if (result.success) {
         setProduct(result.product);
+        setPriceHistory(result.product.price_history || []);
+        setPricePagination(result.product.price_history_pagination || null);
         console.log('PRODUCT_DETAILS: Product details loaded successfully');
       } else {
         setError(result.message || 'Failed to load product details');
@@ -87,6 +92,37 @@ const ProductDetailsScreen = () => {
   const getSegmentClass = (segment) => {
     if (!segment) return '';
     return `segment-${segment.toLowerCase()}`;
+  };
+
+  /**
+   * Loads more price changes for pagination
+   */
+  const loadMorePriceChanges = async () => {
+    if (!pricePagination || !pricePagination.has_more || loadingMorePrices) {
+      return;
+    }
+
+    try {
+      setLoadingMorePrices(true);
+
+      const nextOffset = pricePagination.offset + pricePagination.limit;
+      console.log(`PRODUCT_DETAILS: Loading more price changes, offset: ${nextOffset}`);
+
+      const result = await getMorePriceChanges(groupid, 10, nextOffset);
+
+      if (result.success) {
+        // Append new price changes to existing ones
+        setPriceHistory(prevHistory => [...prevHistory, ...result.price_history]);
+        setPricePagination(result.pagination);
+        console.log('PRODUCT_DETAILS: More price changes loaded successfully');
+      } else {
+        console.error('PRODUCT_DETAILS: Failed to load more price changes:', result.error);
+      }
+    } catch (err) {
+      console.error('PRODUCT_DETAILS: Unexpected error loading more price changes:', err);
+    } finally {
+      setLoadingMorePrices(false);
+    }
   };
 
   if (loading) {
@@ -233,6 +269,68 @@ const ProductDetailsScreen = () => {
             </div>
           )}
         </div>
+
+        {/* Price Change History */}
+        {priceHistory && priceHistory.length > 0 && (
+          <div className="info-card">
+            <h2>Price Change History</h2>
+            <div className="price-table-container">
+              <table className="price-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Old Price</th>
+                    <th>New Price</th>
+                    <th>Change</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {priceHistory.map((change, index) => (
+                    <tr key={index}>
+                      <td>{formatDate(change.date)}</td>
+                      <td>{change.old_price ? formatCurrency(change.old_price) : '-'}</td>
+                      <td>{change.new_price ? formatCurrency(change.new_price) : '-'}</td>
+                      <td>
+                        {change.change_amount !== null && change.change_percent !== null ? (
+                          <div className="price-change">
+                            <span className={`change-amount ${change.change_amount >= 0 ? 'positive' : 'negative'}`}>
+                              {change.change_amount >= 0 ? '+' : ''}{formatCurrency(change.change_amount)}
+                            </span>
+                            <span className={`change-percent ${change.change_percent >= 0 ? 'positive' : 'negative'}`}>
+                              ({change.change_percent >= 0 ? '+' : ''}{change.change_percent.toFixed(2)}%)
+                            </span>
+                          </div>
+                        ) : '-'}
+                      </td>
+                      <td>{change.reason || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Show More Button */}
+            {pricePagination && pricePagination.has_more && (
+              <div className="show-more-container">
+                <button
+                  onClick={loadMorePriceChanges}
+                  disabled={loadingMorePrices}
+                  className="show-more-button"
+                >
+                  {loadingMorePrices ? 'Loading...' : `Show More (${pricePagination.total_count - priceHistory.length} remaining)`}
+                </button>
+              </div>
+            )}
+
+            {/* Price History Summary */}
+            {pricePagination && (
+              <div className="price-history-summary">
+                Showing {priceHistory.length} of {pricePagination.total_count} price changes
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Weekly Performance History */}
         {product.weekly_performance && product.weekly_performance.length > 0 && (

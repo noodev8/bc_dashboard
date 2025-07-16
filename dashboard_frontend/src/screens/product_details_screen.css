@@ -11,8 +11,9 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
+  margin: 0 auto 2rem auto;
   padding: 1.5rem 2rem;
+  max-width: 1200px;
 }
 
 .header-content {
@@ -220,6 +221,110 @@
   background-color: #f8f9fa;
   border-radius: 6px;
   border-left: 4px solid #007bff;
+}
+
+/* Price History Table */
+.price-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+}
+
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.price-table th {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #2c3e50;
+  border-bottom: 2px solid #e1e8ed;
+  white-space: nowrap;
+}
+
+.price-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e1e8ed;
+  color: #2c3e50;
+}
+
+.price-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.price-table tbody tr:nth-child(even) {
+  background-color: #fdfdfd;
+}
+
+.price-change {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.change-amount {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.change-percent {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.change-amount.positive,
+.change-percent.positive {
+  color: #28a745;
+}
+
+.change-amount.negative,
+.change-percent.negative {
+  color: #dc3545;
+}
+
+/* Show More Button and Summary */
+.show-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+  border-top: 1px solid #e1e8ed;
+  margin-top: 1rem;
+}
+
+.show-more-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  min-width: 150px;
+}
+
+.show-more-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.show-more-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.price-history-summary {
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f3f4;
 }
 
 /* Weekly Performance Table */

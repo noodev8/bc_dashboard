@@ -45,9 +45,11 @@ apiClient.interceptors.response.use(
 /**
  * Fetches detailed information for a specific product by groupid
  * @param {string} groupid - The product group identifier
+ * @param {number} priceLimit - Number of price changes to return (default: 5)
+ * @param {number} priceOffset - Offset for price change pagination (default: 0)
  * @returns {Promise<Object>} Promise that resolves to the API response
  */
-export const getProductDetails = async (groupid) => {
+export const getProductDetails = async (groupid, priceLimit = 5, priceOffset = 0) => {
   try {
     console.log(`API: Fetching product details for groupid: ${groupid}`);
 
@@ -57,7 +59,11 @@ export const getProductDetails = async (groupid) => {
     }
 
     // Make POST request to get_product_details endpoint
-    const response = await apiClient.post('/get_product_details', { groupid });
+    const response = await apiClient.post('/get_product_details', {
+      groupid,
+      price_limit: priceLimit,
+      price_offset: priceOffset
+    });
     
     console.log('API: Product details fetched successfully');
     
@@ -117,6 +123,93 @@ export const getProductDetails = async (groupid) => {
       };
     } else {
       // Other error
+      return {
+        success: false,
+        error: 'UNKNOWN_ERROR',
+        message: error.message || 'An unexpected error occurred'
+      };
+    }
+  }
+};
+
+/**
+ * Fetches additional price changes for pagination
+ * @param {string} groupid - The product group identifier
+ * @param {number} priceLimit - Number of price changes to return
+ * @param {number} priceOffset - Offset for price change pagination
+ * @returns {Promise<Object>} Promise that resolves to the API response with price changes only
+ */
+export const getMorePriceChanges = async (groupid, priceLimit = 10, priceOffset = 0) => {
+  try {
+    console.log(`API: Fetching more price changes for groupid: ${groupid}, limit: ${priceLimit}, offset: ${priceOffset}`);
+
+    // Validate groupid parameter
+    if (!groupid) {
+      throw new Error('groupid parameter is required');
+    }
+
+    // Make POST request to get_product_details endpoint with pagination
+    const response = await apiClient.post('/get_product_details', {
+      groupid,
+      price_limit: priceLimit,
+      price_offset: priceOffset
+    });
+
+    console.log('API: More price changes fetched successfully');
+
+    // Check if the response indicates success
+    if (response.data.return_code === 'SUCCESS') {
+      return {
+        success: true,
+        price_history: response.data.product.price_history,
+        pagination: response.data.product.price_history_pagination
+      };
+    } else if (response.data.return_code === 'PRODUCT_NOT_FOUND') {
+      // Product not found
+      return {
+        success: false,
+        error: 'PRODUCT_NOT_FOUND',
+        message: response.data.message || 'Product not found'
+      };
+    } else {
+      // Other backend error codes
+      throw new Error(response.data.message || 'Unknown error from server');
+    }
+
+  } catch (error) {
+    console.error('API: Error fetching more price changes:', error);
+
+    // Handle different types of errors (same as main function)
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+
+      if (status === 404) {
+        return {
+          success: false,
+          error: 'PRODUCT_NOT_FOUND',
+          message: data.message || 'Product not found'
+        };
+      } else if (status === 400) {
+        return {
+          success: false,
+          error: 'BAD_REQUEST',
+          message: data.message || 'Invalid request parameters'
+        };
+      } else {
+        return {
+          success: false,
+          error: 'SERVER_ERROR',
+          message: data.message || `Server error (${status})`
+        };
+      }
+    } else if (error.request) {
+      return {
+        success: false,
+        error: 'NETWORK_ERROR',
+        message: 'Unable to connect to server. Please check your connection.'
+      };
+    } else {
       return {
         success: false,
         error: 'UNKNOWN_ERROR',

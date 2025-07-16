@@ -8,7 +8,9 @@ Purpose: Retrieves detailed information for a specific product by groupid, inclu
 =======================================================================================================================================
 Request Payload:
 {
-  "groupid": "ABC123"                              // Required: Product group identifier
+  "groupid": "ABC123",                             // Required: Product group identifier
+  "price_limit": 5,                                // Optional: Number of price changes to return (default: 5)
+  "price_offset": 0                                // Optional: Offset for pagination (default: 0)
 }
 
 Success Response:
@@ -45,6 +47,25 @@ Success Response:
         "avg_profit_per_unit": 28.10
       }
       // ... more weekly data
+    ],
+    "price_history": [
+      {
+        "date": "2024-07-20T10:30:00Z",
+        "old_price": 25.99,
+        "new_price": 27.99,
+        "change_amount": 2.00,
+        "change_percent": 7.70,
+        "reason": "Market adjustment"
+      },
+      {
+        "date": "2024-07-15T14:15:00Z",
+        "old_price": 24.99,
+        "new_price": 25.99,
+        "change_amount": 1.00,
+        "change_percent": 4.00,
+        "reason": "Cost increase"
+      }
+      // ... more price changes
     ]
   }
 }
@@ -67,8 +88,8 @@ router.post('/', async (req, res) => {
     try {
         console.log('GET_PRODUCT_DETAILS: Starting product details retrieval...');
 
-        // Validate required groupid parameter
-        const { groupid } = req.body;
+        // Validate required groupid parameter and get optional pagination params
+        const { groupid, price_limit = 5, price_offset = 0 } = req.body;
         if (!groupid) {
             console.log('GET_PRODUCT_DETAILS: Missing groupid parameter');
             return res.status(400).json({
@@ -125,6 +146,68 @@ router.post('/', async (req, res) => {
         const weeklyResult = await db.query(weeklyQuery, [groupid]);
         console.log(`GET_PRODUCT_DETAILS: Found ${weeklyResult.rows.length} weeks of historical data for ${groupid}`);
 
+        // Get price change history
+        // First try to get the table structure to understand column names
+        let priceResult = { rows: [] };
+        try {
+            // Try different possible column names for date/timestamp
+            const priceQuery = `
+                SELECT *
+                FROM price_change_log
+                WHERE groupid = $1
+                ORDER BY
+                    CASE
+                        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'created_at') THEN created_at
+                        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'date') THEN date
+                        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'timestamp') THEN timestamp
+                        ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = 'price_change_log' AND data_type IN ('timestamp', 'timestamptz', 'date') LIMIT 1)
+                    END DESC
+                LIMIT 20
+            `;
+
+            // If the complex query fails, try a simpler approach
+            try {
+                priceResult = await db.query(priceQuery, [groupid]);
+            } catch (complexError) {
+                // Fallback: try common column names with pagination
+                const fallbackQueries = [
+                    `SELECT * FROM price_change_log WHERE groupid = $1 ORDER BY date DESC LIMIT $2 OFFSET $3`,
+                    `SELECT * FROM price_change_log WHERE groupid = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3`,
+                    `SELECT * FROM price_change_log WHERE groupid = $1 ORDER BY change_date DESC LIMIT $2 OFFSET $3`,
+                    `SELECT * FROM price_change_log WHERE groupid = $1 LIMIT $2 OFFSET $3`
+                ];
+
+                for (const fallbackQuery of fallbackQueries) {
+                    try {
+                        priceResult = await db.query(fallbackQuery, [groupid, price_limit, price_offset]);
+                        console.log(`GET_PRODUCT_DETAILS: Price query succeeded with fallback`);
+                        break;
+                    } catch (fallbackError) {
+                        continue;
+                    }
+                }
+            }
+
+            console.log(`GET_PRODUCT_DETAILS: Found ${priceResult.rows.length} price changes for ${groupid}`);
+
+            // Get total count of price changes for pagination
+            let totalPriceChanges = 0;
+            try {
+                const countQuery = `SELECT COUNT(*) as total FROM price_change_log WHERE groupid = $1`;
+                const countResult = await db.query(countQuery, [groupid]);
+                totalPriceChanges = parseInt(countResult.rows[0].total) || 0;
+                console.log(`GET_PRODUCT_DETAILS: Total price changes available: ${totalPriceChanges}`);
+            } catch (countError) {
+                console.log(`GET_PRODUCT_DETAILS: Could not get price change count: ${countError.message}`);
+            }
+
+            // Store total count for response
+            priceResult.totalCount = totalPriceChanges;
+        } catch (priceError) {
+            console.log(`GET_PRODUCT_DETAILS: Price change log not available or error: ${priceError.message}`);
+            priceResult.totalCount = 0;
+        }
+
         // Format the response data
         const product = {
             groupid: productData.groupid,
@@ -149,7 +232,35 @@ router.post('/', async (req, res) => {
                 annual_profit: row.annual_profit ? parseFloat(row.annual_profit) : 0,
                 sold_qty: row.sold_qty || 0,
                 avg_profit_per_unit: row.avg_profit_per_unit ? parseFloat(row.avg_profit_per_unit) : 0
-            }))
+            })),
+            price_history: priceResult.rows.map(row => {
+                // Try to find the date column with different possible names
+                const dateValue = row.created_at || row.date || row.timestamp || row.change_date || null;
+
+                // Try to find price columns with different possible names
+                const oldPrice = row.old_price || row.previous_price || row.price_before || null;
+                const newPrice = row.new_price || row.current_price || row.price_after || row.price || null;
+
+                return {
+                    date: dateValue,
+                    old_price: oldPrice ? parseFloat(oldPrice) : null,
+                    new_price: newPrice ? parseFloat(newPrice) : null,
+                    change_amount: oldPrice && newPrice ?
+                        parseFloat(newPrice) - parseFloat(oldPrice) : null,
+                    change_percent: oldPrice && newPrice && parseFloat(oldPrice) !== 0 ?
+                        ((parseFloat(newPrice) - parseFloat(oldPrice)) / parseFloat(oldPrice) * 100) : null,
+                    reason: row.reason || row.change_reason || row.notes || '',
+                    // Include any other fields that might exist
+                    ...row
+                };
+            }),
+            price_history_pagination: {
+                current_count: priceResult.rows.length,
+                total_count: priceResult.totalCount || 0,
+                has_more: (price_offset + priceResult.rows.length) < (priceResult.totalCount || 0),
+                limit: price_limit,
+                offset: price_offset
+            }
         };
 
         console.log(`GET_PRODUCT_DETAILS: Successfully retrieved details for ${groupid}`);
