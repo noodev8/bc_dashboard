@@ -9,7 +9,8 @@ Purpose: Retrieves SHP channel products from the groupid_performance table order
 =======================================================================================================================================
 Request Payload:
 {
-  "season_filter": "summer" | "winter"    // optional, filters products by season from skusummary table
+  "season_filter": "Summer" | "Winter",           // optional, includes only products with this season
+  "season_filter_exclude": "Summer" | "Winter"    // optional, excludes products with this season
 }
 
 Success Response:
@@ -53,7 +54,9 @@ router.post('/', async (req, res) => {
 
         // Get season filter from request body (optional)
         const seasonFilter = req.body.season_filter;
+        const seasonFilterExclude = req.body.season_filter_exclude;
         console.log(`GET_PRODUCTS: Season filter: ${seasonFilter || 'none'}`);
+        console.log(`GET_PRODUCTS: Season filter exclude: ${seasonFilterExclude || 'none'}`);
 
         // Build SQL query with optional season filtering
         let query = `
@@ -62,7 +65,7 @@ router.post('/', async (req, res) => {
         `;
 
         // Add join with skusummary if season filter is provided
-        if (seasonFilter) {
+        if (seasonFilter || seasonFilterExclude) {
             query += `
             LEFT JOIN skusummary ss ON gp.groupid = ss.groupid
             `;
@@ -73,8 +76,13 @@ router.post('/', async (req, res) => {
         `;
 
         // Add season filter condition if provided
+        let queryParams = [];
         if (seasonFilter) {
-            query += ` AND ss.season = $1`;
+            queryParams.push(seasonFilter);
+            query += ` AND ss.season = $${queryParams.length}`;
+        } else if (seasonFilterExclude) {
+            queryParams.push(seasonFilterExclude);
+            query += ` AND (ss.season IS NULL OR ss.season != $${queryParams.length})`;
         }
 
         query += `
@@ -83,9 +91,9 @@ router.post('/', async (req, res) => {
 
         console.log('GET_PRODUCTS: Executing database query...');
 
-        // Execute the query with or without season parameter
-        const result = seasonFilter ?
-            await db.query(query, [seasonFilter]) :
+        // Execute the query with parameters
+        const result = queryParams.length > 0 ?
+            await db.query(query, queryParams) :
             await db.query(query);
         
         console.log(`GET_PRODUCTS: Query successful. Retrieved ${result.rows.length} products`);

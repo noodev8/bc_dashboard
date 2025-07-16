@@ -189,6 +189,38 @@
   border-bottom: 1px solid #e1e8ed;
 }
 
+/* Season Checkbox Styles */
+.season-checkbox-group {
+  padding: 0.5rem;
+}
+
+.season-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.season-checkbox-item:hover {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.season-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3498db;
+}
+
+.checkbox-label {
+  user-select: none;
+  cursor: pointer;
+}
+
 .comparison-filter-container {
   min-width: 160px;
   display: flex;

@@ -29,7 +29,12 @@ const ProductsScreen = () => {
   const [comparisonPeriod, setComparisonPeriod] = useState('week');
   const [comparisonInfo, setComparisonInfo] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
-  const [seasonFilter, setSeasonFilter] = useState('');
+  const [seasonFilters, setSeasonFilters] = useState({
+    all: true,
+    any: false,
+    summer: false,
+    winter: false
+  });
   const [showSeasonDropdown, setShowSeasonDropdown] = useState(false);
 
   // Ref for season filter dropdown
@@ -45,7 +50,7 @@ const ProductsScreen = () => {
     if (products.length > 0) { // Only reload if we already have products loaded
       loadProducts();
     }
-  }, [comparisonMode, comparisonPeriod, seasonFilter]);
+  }, [comparisonMode, comparisonPeriod, seasonFilters]);
 
   // Handle clicks outside of the season dropdown to close it
   useEffect(() => {
@@ -65,6 +70,81 @@ const ProductsScreen = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showSeasonDropdown]);
+
+  /**
+   * Determines the season filter to send to the API based on checkbox selections
+   */
+  const getSeasonFilterForAPI = () => {
+    const { all, any, summer, winter } = seasonFilters;
+
+    // If 'All' is selected, no filter needed
+    if (all) {
+      return null;
+    }
+
+    // Count selected seasons
+    const selectedSeasons = [];
+    if (any) selectedSeasons.push('Any');
+    if (summer) selectedSeasons.push('Summer');
+    if (winter) selectedSeasons.push('Winter');
+
+    // If no seasons selected, default to all
+    if (selectedSeasons.length === 0) {
+      return null;
+    }
+
+    // If all three seasons are selected, show all
+    if (selectedSeasons.length === 3) {
+      return null;
+    }
+
+    // If only one season is selected, include it
+    if (selectedSeasons.length === 1) {
+      return { include: selectedSeasons[0] };
+    }
+
+    // If two seasons are selected, exclude the unselected one
+    if (selectedSeasons.length === 2) {
+      const allSeasons = ['Any', 'Summer', 'Winter'];
+      const unselectedSeason = allSeasons.find(season => !selectedSeasons.includes(season));
+      return { exclude: unselectedSeason };
+    }
+
+    return null; // Default to no filter
+  };
+
+  /**
+   * Handles season filter checkbox changes
+   */
+  const handleSeasonFilterChange = (filterType, checked) => {
+    setSeasonFilters(prev => {
+      const newFilters = { ...prev };
+
+      if (filterType === 'all' && checked) {
+        // If 'All' is checked, uncheck everything else
+        return {
+          all: true,
+          any: false,
+          summer: false,
+          winter: false
+        };
+      } else if (filterType === 'all' && !checked) {
+        // If 'All' is unchecked, do nothing (keep it checked)
+        return prev;
+      } else {
+        // For other filters, uncheck 'All' if it was checked
+        newFilters.all = false;
+        newFilters[filterType] = checked;
+
+        // If nothing is selected, default back to 'All'
+        if (!newFilters.any && !newFilters.summer && !newFilters.winter) {
+          newFilters.all = true;
+        }
+      }
+
+      return newFilters;
+    });
+  };
 
   /**
    * Loads both products and owners data
@@ -92,8 +172,13 @@ const ProductsScreen = () => {
 
       // Prepare request payload with optional season filter
       const requestPayload = {};
-      if (seasonFilter) {
-        requestPayload.season_filter = seasonFilter;
+      const seasonFilterForAPI = getSeasonFilterForAPI();
+      if (seasonFilterForAPI) {
+        if (seasonFilterForAPI.include) {
+          requestPayload.season_filter = seasonFilterForAPI.include;
+        } else if (seasonFilterForAPI.exclude) {
+          requestPayload.season_filter_exclude = seasonFilterForAPI.exclude;
+        }
       }
 
       let result;
@@ -500,40 +585,50 @@ const ProductsScreen = () => {
           <div className="season-filter-container" ref={seasonDropdownRef}>
             <button
               onClick={() => setShowSeasonDropdown(!showSeasonDropdown)}
-              className={`season-filter-button ${seasonFilter ? 'active' : ''}`}
+              className={`season-filter-button ${!seasonFilters.all ? 'active' : ''}`}
               title="Filter by season"
             >
               🔍
             </button>
             {showSeasonDropdown && (
               <div className="season-dropdown">
-                <button
-                  onClick={() => {
-                    setSeasonFilter('');
-                    setShowSeasonDropdown(false);
-                  }}
-                  className={`season-option ${seasonFilter === '' ? 'active' : ''}`}
-                >
-                  All Seasons
-                </button>
-                <button
-                  onClick={() => {
-                    setSeasonFilter('Summer');
-                    setShowSeasonDropdown(false);
-                  }}
-                  className={`season-option ${seasonFilter === 'Summer' ? 'active' : ''}`}
-                >
-                  ☀️ Summer
-                </button>
-                <button
-                  onClick={() => {
-                    setSeasonFilter('Winter');
-                    setShowSeasonDropdown(false);
-                  }}
-                  className={`season-option ${seasonFilter === 'Winter' ? 'active' : ''}`}
-                >
-                  ❄️ Winter
-                </button>
+                <div className="season-checkbox-group">
+                  <label className="season-checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={seasonFilters.all}
+                      onChange={(e) => handleSeasonFilterChange('all', e.target.checked)}
+                    />
+                    <span className="checkbox-label">All</span>
+                  </label>
+
+                  <label className="season-checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={seasonFilters.any}
+                      onChange={(e) => handleSeasonFilterChange('any', e.target.checked)}
+                    />
+                    <span className="checkbox-label">Any</span>
+                  </label>
+
+                  <label className="season-checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={seasonFilters.summer}
+                      onChange={(e) => handleSeasonFilterChange('summer', e.target.checked)}
+                    />
+                    <span className="checkbox-label">☀️ Summer</span>
+                  </label>
+
+                  <label className="season-checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={seasonFilters.winter}
+                      onChange={(e) => handleSeasonFilterChange('winter', e.target.checked)}
+                    />
+                    <span className="checkbox-label">❄️ Winter</span>
+                  </label>
+                </div>
               </div>
             )}
           </div>

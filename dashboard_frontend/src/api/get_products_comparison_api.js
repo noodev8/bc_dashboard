@@ -53,7 +53,8 @@ apiClient.interceptors.response.use(
  * Fetches products with comparison data from the backend API
  * @param {Object} params - Parameters for the comparison request
  * @param {string} params.comparison_period - Either 'week' or 'month' for comparison period
- * @param {string} params.season_filter - Optional season filter ('summer' or 'winter')
+ * @param {string} params.season_filter - Optional season filter ('Summer' or 'Winter')
+ * @param {string} params.season_filter_exclude - Optional season exclusion filter ('Summer' or 'Winter')
  * @returns {Promise<Object>} Promise that resolves to the API response
  */
 export const getProductsComparison = async (params = {}) => {
@@ -68,6 +69,9 @@ export const getProductsComparison = async (params = {}) => {
 
     if (requestPayload.season_filter) {
       console.log(`API: Applying season filter: ${requestPayload.season_filter}`);
+    }
+    if (requestPayload.season_filter_exclude) {
+      console.log(`API: Applying season exclusion filter: ${requestPayload.season_filter_exclude}`);
     }
 
     // Make POST request to get_products_comparison endpoint

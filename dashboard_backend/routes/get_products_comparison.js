@@ -8,8 +8,9 @@ Purpose: Retrieves current SHP products with comparison to previous week's perfo
 =======================================================================================================================================
 Request Payload:
 {
-  "comparison_period": "week" | "month",  // Optional, defaults to "week"
-  "season_filter": "summer" | "winter"    // Optional, filters products by season from skusummary table
+  "comparison_period": "week" | "month",           // Optional, defaults to "week"
+  "season_filter": "Summer" | "Winter",            // Optional, includes only products with this season
+  "season_filter_exclude": "Summer" | "Winter"     // Optional, excludes products with this season
 }
 
 Success Response:
@@ -101,7 +102,9 @@ router.post('/', async (req, res) => {
 
         // Get season filter from request body (optional)
         const seasonFilter = req.body.season_filter;
+        const seasonFilterExclude = req.body.season_filter_exclude;
         console.log(`GET_PRODUCTS_COMPARISON: Season filter: ${seasonFilter || 'none'}`);
+        console.log(`GET_PRODUCTS_COMPARISON: Season filter exclude: ${seasonFilterExclude || 'none'}`);
 
         // First, find the actual current week from the database (highest week number)
         const currentWeekQuery = `
@@ -209,10 +212,16 @@ router.post('/', async (req, res) => {
             let seasonWhereCondition = '';
             let queryParams = [];
 
-            if (seasonFilter) {
-                queryParams.push(seasonFilter);
+            if (seasonFilter || seasonFilterExclude) {
                 seasonJoinCondition = 'LEFT JOIN skusummary ss ON gp.groupid = ss.groupid';
-                seasonWhereCondition = `AND ss.season = $${queryParams.length}`;
+
+                if (seasonFilter) {
+                    queryParams.push(seasonFilter);
+                    seasonWhereCondition = `AND ss.season = $${queryParams.length}`;
+                } else if (seasonFilterExclude) {
+                    queryParams.push(seasonFilterExclude);
+                    seasonWhereCondition = `AND (ss.season IS NULL OR ss.season != $${queryParams.length})`;
+                }
             }
 
             const currentOnlyQuery = `
@@ -290,10 +299,16 @@ router.post('/', async (req, res) => {
         let seasonJoinCondition = '';
         let seasonWhereCondition = '';
 
-        if (seasonFilter) {
-            queryParams.push(seasonFilter);
+        if (seasonFilter || seasonFilterExclude) {
             seasonJoinCondition = 'LEFT JOIN skusummary ss ON gp.groupid = ss.groupid';
-            seasonWhereCondition = `AND ss.season = $${queryParams.length}`;
+
+            if (seasonFilter) {
+                queryParams.push(seasonFilter);
+                seasonWhereCondition = `AND ss.season = $${queryParams.length}`;
+            } else if (seasonFilterExclude) {
+                queryParams.push(seasonFilterExclude);
+                seasonWhereCondition = `AND (ss.season IS NULL OR ss.season != $${queryParams.length})`;
+            }
         }
 
         const query = `

@@ -10,10 +10,10 @@ import './OverallStats.css';
 const OverallStats = ({ overallStats, comparisonMode }) => {
   // Helper function to format currency
   const formatCurrency = (value) => {
-    if (value === null || value === undefined) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
+    if (value === null || value === undefined) return '£0.00';
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
@@ -22,7 +22,7 @@ const OverallStats = ({ overallStats, comparisonMode }) => {
   // Helper function to format numbers
   const formatNumber = (value) => {
     if (value === null || value === undefined) return '0';
-    return new Intl.NumberFormat('en-US').format(value);
+    return new Intl.NumberFormat('en-GB').format(value);
   };
 
   // Helper function to format percentages
