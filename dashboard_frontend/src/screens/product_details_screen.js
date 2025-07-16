@@ -5,13 +5,14 @@ historical weekly performance trends, and SKU details
 */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getProductDetails, getMorePriceChanges } from '../api/get_product_details_api';
 import './product_details_screen.css';
 
 const ProductDetailsScreen = () => {
   const { groupid } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,6 +24,15 @@ const ProductDetailsScreen = () => {
   useEffect(() => {
     loadProductDetails();
   }, [groupid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * Handles navigation back to products list with preserved filter state
+   */
+  const handleBackToProducts = () => {
+    // Use the current URL search parameters to preserve filter state
+    const returnUrl = location.search ? `/products${location.search}` : '/products';
+    navigate(returnUrl);
+  };
 
   /**
    * Fetches product details from the API
@@ -146,7 +156,7 @@ const ProductDetailsScreen = () => {
             <button onClick={loadProductDetails} className="retry-button">
               Try Again
             </button>
-            <button onClick={() => navigate('/products')} className="back-button">
+            <button onClick={handleBackToProducts} className="back-button">
               Back to Products
             </button>
           </div>
@@ -161,7 +171,7 @@ const ProductDetailsScreen = () => {
         <div className="not-found-container">
           <h2>Product Not Found</h2>
           <p>The product with ID "{groupid}" could not be found.</p>
-          <button onClick={() => navigate('/products')} className="back-button">
+          <button onClick={handleBackToProducts} className="back-button">
             Back to Products
           </button>
         </div>
@@ -174,7 +184,7 @@ const ProductDetailsScreen = () => {
       {/* Header */}
       <div className="product-header">
         <div className="header-content">
-          <button onClick={() => navigate('/products')} className="back-button">
+          <button onClick={handleBackToProducts} className="back-button">
             ← Back to Products
           </button>
           <h1>Product Details: {product.groupid}</h1>

@@ -6,6 +6,7 @@ Provides filtering and sorting capabilities for better data analysis
 */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getProducts } from '../api/get_products_api';
 import { getOwners } from '../api/get_owners_api';
 import { getProductsComparison } from '../api/get_products_comparison_api';
@@ -13,32 +14,70 @@ import OverallStats from '../components/OverallStats';
 import './products_screen.css';
 
 const ProductsScreen = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   // State management
   const [products, setProducts] = useState([]);
   const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortConfig, setSortConfig] = useState({
-    key: 'annual_profit',
-    direction: 'desc'
-  });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedOwner, setSelectedOwner] = useState('');
-  const [showTasksOnly, setShowTasksOnly] = useState(false);
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [comparisonPeriod, setComparisonPeriod] = useState('week');
   const [comparisonInfo, setComparisonInfo] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
-  const [seasonFilters, setSeasonFilters] = useState({
-    all: true,
-    any: false,
-    summer: false,
-    winter: false
-  });
   const [showSeasonDropdown, setShowSeasonDropdown] = useState(false);
+
+  // Initialize state from URL parameters
+  const [sortConfig, setSortConfig] = useState({
+    key: searchParams.get('sortKey') || 'annual_profit',
+    direction: searchParams.get('sortDir') || 'desc'
+  });
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedOwner, setSelectedOwner] = useState(searchParams.get('owner') || '');
+  const [showTasksOnly, setShowTasksOnly] = useState(searchParams.get('tasks') === 'true');
+  const [comparisonMode, setComparisonMode] = useState(searchParams.get('comparison') === 'true');
+  const [comparisonPeriod, setComparisonPeriod] = useState(searchParams.get('period') || 'week');
+  const [seasonFilters, setSeasonFilters] = useState(() => {
+    const seasonParam = searchParams.get('seasons');
+    if (seasonParam) {
+      try {
+        return JSON.parse(decodeURIComponent(seasonParam));
+      } catch (e) {
+        console.warn('Failed to parse season filters from URL:', e);
+      }
+    }
+    return {
+      all: true,
+      any: false,
+      summer: false,
+      winter: false
+    };
+  });
 
   // Ref for season filter dropdown
   const seasonDropdownRef = useRef(null);
+
+  /**
+   * Updates URL search parameters to preserve filter state
+   */
+  const updateURLParams = (updates) => {
+    const newParams = new URLSearchParams(searchParams);
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '' ||
+          (typeof value === 'boolean' && !value) ||
+          (key === 'sortKey' && value === 'annual_profit') ||
+          (key === 'sortDir' && value === 'desc') ||
+          (key === 'period' && value === 'week')) {
+        newParams.delete(key);
+      } else if (typeof value === 'object') {
+        newParams.set(key, encodeURIComponent(JSON.stringify(value)));
+      } else {
+        newParams.set(key, value.toString());
+      }
+    });
+
+    setSearchParams(newParams, { replace: true });
+  };
 
   // Load products and owners data on component mount
   useEffect(() => {
@@ -118,11 +157,11 @@ const ProductsScreen = () => {
    */
   const handleSeasonFilterChange = (filterType, checked) => {
     setSeasonFilters(prev => {
-      const newFilters = { ...prev };
+      let newFilters = { ...prev };
 
       if (filterType === 'all' && checked) {
         // If 'All' is checked, uncheck everything else
-        return {
+        newFilters = {
           all: true,
           any: false,
           summer: false,
@@ -142,6 +181,8 @@ const ProductsScreen = () => {
         }
       }
 
+      // Update URL parameters
+      updateURLParams({ seasons: newFilters });
       return newFilters;
     });
   };
@@ -258,7 +299,9 @@ const ProductsScreen = () => {
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
     }
-    setSortConfig({ key, direction });
+    const newSortConfig = { key, direction };
+    setSortConfig(newSortConfig);
+    updateURLParams({ sortKey: key, sortDir: direction });
   };
 
   /**
@@ -423,7 +466,19 @@ const ProductsScreen = () => {
    * Handles clicking on a product row to open details in new tab
    */
   const handleProductClick = (groupid) => {
-    const url = `/products/${encodeURIComponent(groupid)}`;
+    // Build URL with current filter state as return parameters
+    const returnParams = new URLSearchParams();
+    if (searchTerm) returnParams.set('search', searchTerm);
+    if (selectedOwner) returnParams.set('owner', selectedOwner);
+    if (showTasksOnly) returnParams.set('tasks', 'true');
+    if (comparisonMode) returnParams.set('comparison', 'true');
+    if (comparisonPeriod !== 'week') returnParams.set('period', comparisonPeriod);
+    if (sortConfig.key !== 'annual_profit') returnParams.set('sortKey', sortConfig.key);
+    if (sortConfig.direction !== 'desc') returnParams.set('sortDir', sortConfig.direction);
+    if (!seasonFilters.all) returnParams.set('seasons', encodeURIComponent(JSON.stringify(seasonFilters)));
+
+    const returnUrl = returnParams.toString() ? `?${returnParams.toString()}` : '';
+    const url = `/products/${encodeURIComponent(groupid)}${returnUrl}`;
     window.open(url, '_blank');
   };
 
@@ -533,7 +588,11 @@ const ProductsScreen = () => {
               type="text"
               placeholder="Search products..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchTerm(value);
+                updateURLParams({ search: value });
+              }}
               className="search-input"
             />
           </div>
@@ -541,7 +600,11 @@ const ProductsScreen = () => {
           <div className="owner-filter-container">
             <select
               value={selectedOwner}
-              onChange={(e) => setSelectedOwner(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedOwner(value);
+                updateURLParams({ owner: value });
+              }}
               className="owner-filter-select"
             >
               <option value="">All Owners</option>
@@ -555,7 +618,11 @@ const ProductsScreen = () => {
 
           <div className="review-filter-container">
             <button
-              onClick={() => setShowTasksOnly(!showTasksOnly)}
+              onClick={() => {
+                const newValue = !showTasksOnly;
+                setShowTasksOnly(newValue);
+                updateURLParams({ tasks: newValue });
+              }}
               className={`review-filter-toggle ${showTasksOnly ? 'active' : ''}`}
               title={showTasksOnly ? 'Showing products that need review (no date or overdue)' : 'Showing all products'}
             >
@@ -567,7 +634,11 @@ const ProductsScreen = () => {
 
           <div className="comparison-filter-container">
             <button
-              onClick={() => setComparisonMode(!comparisonMode)}
+              onClick={() => {
+                const newValue = !comparisonMode;
+                setComparisonMode(newValue);
+                updateURLParams({ comparison: newValue });
+              }}
               className={`comparison-filter-toggle ${comparisonMode ? 'active' : ''}`}
               title={comparisonMode ? 'Showing comparison data' : 'Showing current data only'}
             >
@@ -577,7 +648,11 @@ const ProductsScreen = () => {
             {comparisonMode && (
               <select
                 value={comparisonPeriod}
-                onChange={(e) => setComparisonPeriod(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setComparisonPeriod(value);
+                  updateURLParams({ period: value });
+                }}
                 className="comparison-period-select"
                 title="Select comparison period"
               >
