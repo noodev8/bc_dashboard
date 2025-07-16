@@ -163,8 +163,12 @@
   color: #17a2b8;
 }
 
-.metric-value.margin {
+.metric-value.current-price {
   color: #6f42c1;
+}
+
+.metric-value.recommended-price {
+  color: #fd7e14;
 }
 
 /* Segment Badge Styles */

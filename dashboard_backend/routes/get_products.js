@@ -29,7 +29,8 @@ Success Response:
       "brand": "Nike",                       // string, product brand
       "next_review_date": "2024-08-15",      // date, next review date
       "review_date": "2024-07-15",           // date, last review date
-      "avg_gross_margin": 0.2500             // numeric, average gross margin percentage
+      "avg_gross_margin": 0.2500,            // numeric, average gross margin percentage
+      "recommended_price": 29.99             // numeric, recommended price for the product
     }
     // ... more products
   ],
@@ -111,7 +112,8 @@ router.post('/', async (req, res) => {
             brand: row.brand || '',
             next_review_date: row.next_review_date,
             review_date: row.review_date,
-            avg_gross_margin: row.avg_gross_margin ? parseFloat(row.avg_gross_margin) : 0
+            avg_gross_margin: row.avg_gross_margin ? parseFloat(row.avg_gross_margin) : 0,
+            recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0
         }));
         
         // Return successful response

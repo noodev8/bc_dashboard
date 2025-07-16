@@ -241,9 +241,15 @@ const ProductDetailsScreen = () => {
               </span>
             </div>
             <div className="metric-item">
-              <label>Gross Margin</label>
-              <span className="metric-value margin">
-                {formatPercentage(product.avg_gross_margin)}
+              <label>Current Price</label>
+              <span className="metric-value current-price">
+                {formatCurrency(product.current_price)}
+              </span>
+            </div>
+            <div className="metric-item">
+              <label>Recommended Price</label>
+              <span className="metric-value recommended-price">
+                {formatCurrency(product.recommended_price)}
               </span>
             </div>
           </div>

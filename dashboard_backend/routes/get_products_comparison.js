@@ -30,6 +30,7 @@ Success Response:
       "next_review_date": "2024-08-15",
       "review_date": "2024-07-15",
       "avg_gross_margin": 0.2500,
+      "recommended_price": 29.99,
       "previous_week": {
         "annual_profit": 1180.50,
         "sold_qty": 42,
@@ -237,7 +238,8 @@ router.post('/', async (req, res) => {
                     gp.brand,
                     gp.next_review_date,
                     gp.review_date,
-                    gp.avg_gross_margin
+                    gp.avg_gross_margin,
+                    gp.recommended_price
                 FROM groupid_performance gp
                 ${seasonJoinCondition}
                 WHERE gp.channel = 'SHP'
@@ -260,6 +262,7 @@ router.post('/', async (req, res) => {
                 next_review_date: row.next_review_date,
                 review_date: row.review_date,
                 avg_gross_margin: parseFloat(row.avg_gross_margin) || 0,
+                recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0,
                 previous_week: null,
                 changes: null
             }));
@@ -325,7 +328,8 @@ router.post('/', async (req, res) => {
                     gp.brand,
                     gp.next_review_date,
                     gp.review_date,
-                    gp.avg_gross_margin
+                    gp.avg_gross_margin,
+                    gp.recommended_price
                 FROM groupid_performance gp
                 ${seasonJoinCondition}
                 WHERE gp.channel = 'SHP'
@@ -413,6 +417,7 @@ router.post('/', async (req, res) => {
             next_review_date: row.next_review_date,
             review_date: row.review_date,
             avg_gross_margin: row.avg_gross_margin ? parseFloat(row.avg_gross_margin) : 0,
+            recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0,
             
             // Previous week data
             previous_week: row.prev_annual_profit !== null ? {

@@ -699,13 +699,13 @@ const ProductsScreen = () => {
               >
                 Owner
               </th>
-              <th 
+              <th
                 onClick={() => handleSort('avg_gross_margin')}
                 className={`sortable ${getSortClass('avg_gross_margin')}`}
               >
                 Gross Margin
               </th>
-              <th 
+              <th
                 onClick={() => handleSort('review_date')}
                 className={`sortable ${getSortClass('review_date')}`}
               >

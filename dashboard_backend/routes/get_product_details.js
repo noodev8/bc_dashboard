@@ -29,6 +29,8 @@ Success Response:
     "next_review_date": "2024-08-15",
     "review_date": "2024-07-15",
     "avg_gross_margin": 0.2500,
+    "recommended_price": 29.99,
+    "current_price": 27.50,
     "sku_details": {
       "season": "Summer",
       "additional_info": "..."
@@ -203,6 +205,20 @@ router.post('/', async (req, res) => {
 
             // Store total count for response
             priceResult.totalCount = totalPriceChanges;
+
+            // Get current price from most recent price change
+            let currentPrice = null;
+            if (priceResult.rows.length > 0) {
+                const mostRecentChange = priceResult.rows[0];
+                // Try to find the current/new price from the most recent change
+                currentPrice = mostRecentChange.new_price || mostRecentChange.current_price ||
+                              mostRecentChange.price_after || mostRecentChange.price || null;
+                if (currentPrice) {
+                    currentPrice = parseFloat(currentPrice);
+                    console.log(`GET_PRODUCT_DETAILS: Found current price: ${currentPrice} for ${groupid}`);
+                }
+            }
+            priceResult.currentPrice = currentPrice;
         } catch (priceError) {
             console.log(`GET_PRODUCT_DETAILS: Price change log not available or error: ${priceError.message}`);
             priceResult.totalCount = 0;
@@ -222,6 +238,8 @@ router.post('/', async (req, res) => {
             next_review_date: productData.next_review_date,
             review_date: productData.review_date,
             avg_gross_margin: productData.avg_gross_margin ? parseFloat(productData.avg_gross_margin) : 0,
+            recommended_price: productData.recommended_price ? parseFloat(productData.recommended_price) : 0,
+            current_price: priceResult.currentPrice || 0,
             sku_details: skuDetails ? {
                 season: skuDetails.season || '',
                 // Add other SKU fields as needed
