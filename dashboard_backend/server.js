@@ -56,12 +56,14 @@ const authenticateToken = (req, res, next) => {
 const get_products = require("./routes/get_products");
 const get_owners = require("./routes/get_owners");
 const get_products_comparison = require("./routes/get_products_comparison");
+const get_product_details = require("./routes/get_product_details");
 
 // Route definitions
 // All routes use POST method as per project requirements
 app.use("/get_products", get_products);
 app.use("/get_owners", get_owners);
 app.use("/get_products_comparison", get_products_comparison);
+app.use("/get_product_details", get_product_details);
 
 // Health check endpoint
 app.post('/health', (req, res) => {

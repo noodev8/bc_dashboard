@@ -7,6 +7,7 @@ Provides navigation between different screens and manages global state
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProductsScreen from './screens/products_screen';
+import ProductDetailsScreen from './screens/product_details_screen';
 import './App.css';
 
 function App() {
@@ -20,7 +21,10 @@ function App() {
             
             {/* Products dashboard route */}
             <Route path="/products" element={<ProductsScreen />} />
-            
+
+            {/* Product details route */}
+            <Route path="/products/:groupid" element={<ProductDetailsScreen />} />
+
             {/* Catch-all route for 404 */}
             <Route path="*" element={
               <div className="not-found">

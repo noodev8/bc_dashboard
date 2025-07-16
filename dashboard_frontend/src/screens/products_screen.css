@@ -354,6 +354,22 @@
   background-color: #f8f9fa;
 }
 
+/* Clickable Product Rows */
+.product-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.product-row:hover {
+  background-color: #e3f2fd !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.product-row:active {
+  transform: translateY(0);
+}
+
 /* Sortable Column Headers */
 .sortable {
   cursor: pointer;

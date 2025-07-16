@@ -420,6 +420,14 @@ const ProductsScreen = () => {
   };
 
   /**
+   * Handles clicking on a product row to open details in new tab
+   */
+  const handleProductClick = (groupid) => {
+    const url = `/products/${encodeURIComponent(groupid)}`;
+    window.open(url, '_blank');
+  };
+
+  /**
    * Formats date values for display
    */
   const formatDate = (dateString) => {
@@ -713,7 +721,12 @@ const ProductsScreen = () => {
           </thead>
           <tbody>
             {filteredProducts.map((product, index) => (
-              <tr key={`${product.groupid}-${index}`}>
+              <tr
+                key={`${product.groupid}-${index}`}
+                className="product-row"
+                onClick={() => handleProductClick(product.groupid)}
+                title="Click to view product details in new tab"
+              >
                 <td className="groupid-cell">{product.groupid || '-'}</td>
                 <td className="profit-cell">
                   {formatComparison(
