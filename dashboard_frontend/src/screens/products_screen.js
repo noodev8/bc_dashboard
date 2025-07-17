@@ -463,9 +463,9 @@ const ProductsScreen = () => {
   };
 
   /**
-   * Handles clicking on a product row to open details in new tab
+   * Handles double-clicking on a product row to open details in new tab
    */
-  const handleProductClick = (groupid) => {
+  const handleProductDoubleClick = (groupid) => {
     // Build URL with current filter state as return parameters
     const returnParams = new URLSearchParams();
     if (searchTerm) returnParams.set('search', searchTerm);
@@ -799,8 +799,8 @@ const ProductsScreen = () => {
               <tr
                 key={`${product.groupid}-${index}`}
                 className="product-row"
-                onClick={() => handleProductClick(product.groupid)}
-                title="Click to view product details in new tab"
+                onDoubleClick={() => handleProductDoubleClick(product.groupid)}
+                title="Double-click to view product details in new tab"
               >
                 <td className="groupid-cell">{product.groupid || '-'}</td>
                 <td className="profit-cell">
