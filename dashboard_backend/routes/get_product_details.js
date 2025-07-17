@@ -134,6 +134,9 @@ router.post('/', async (req, res) => {
 
         if (skuDetails) {
             console.log(`GET_PRODUCT_DETAILS: Found SKU details for ${groupid}`);
+            if (skuDetails.shopifyprice) {
+                console.log(`GET_PRODUCT_DETAILS: Found shopifyprice: ${skuDetails.shopifyprice} for ${groupid}`);
+            }
         }
 
         // Get historical weekly performance data
@@ -206,19 +209,8 @@ router.post('/', async (req, res) => {
             // Store total count for response
             priceResult.totalCount = totalPriceChanges;
 
-            // Get current price from most recent price change
-            let currentPrice = null;
-            if (priceResult.rows.length > 0) {
-                const mostRecentChange = priceResult.rows[0];
-                // Try to find the current/new price from the most recent change
-                currentPrice = mostRecentChange.new_price || mostRecentChange.current_price ||
-                              mostRecentChange.price_after || mostRecentChange.price || null;
-                if (currentPrice) {
-                    currentPrice = parseFloat(currentPrice);
-                    console.log(`GET_PRODUCT_DETAILS: Found current price: ${currentPrice} for ${groupid}`);
-                }
-            }
-            priceResult.currentPrice = currentPrice;
+            // Current price will be retrieved from skusummary.shopify_price instead of price log
+            priceResult.currentPrice = null;
         } catch (priceError) {
             console.log(`GET_PRODUCT_DETAILS: Price change log not available or error: ${priceError.message}`);
             priceResult.totalCount = 0;
@@ -239,7 +231,7 @@ router.post('/', async (req, res) => {
             review_date: productData.review_date,
             avg_gross_margin: productData.avg_gross_margin ? parseFloat(productData.avg_gross_margin) : 0,
             recommended_price: productData.recommended_price ? parseFloat(productData.recommended_price) : 0,
-            current_price: priceResult.currentPrice || 0,
+            current_price: skuDetails?.shopifyprice ? parseFloat(skuDetails.shopifyprice) : 0,
             sku_details: skuDetails ? {
                 season: skuDetails.season || '',
                 // Add other SKU fields as needed
