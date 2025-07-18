@@ -325,67 +325,112 @@ const ProductDetailsScreen = () => {
           )}
         </div>
 
-        {/* Price Change History */}
-        {priceHistory && priceHistory.length > 0 && (
-          <div className="info-card">
-            <h2>Price Change History</h2>
-            <div className="price-table-container">
-              <table className="price-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Old Price</th>
-                    <th>New Price</th>
-                    <th>Change</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {priceHistory.map((change, index) => (
-                    <tr key={index}>
-                      <td>{formatDate(change.date)}</td>
-                      <td>{change.old_price ? formatCurrency(change.old_price) : '-'}</td>
-                      <td>{change.new_price ? formatCurrency(change.new_price) : '-'}</td>
-                      <td>
-                        {change.change_amount !== null && change.change_percent !== null ? (
-                          <div className="price-change">
-                            <span className={`change-amount ${change.change_amount >= 0 ? 'positive' : 'negative'}`}>
-                              {change.change_amount >= 0 ? '+' : ''}{formatCurrency(change.change_amount)}
-                            </span>
-                            <span className={`change-percent ${change.change_percent >= 0 ? 'positive' : 'negative'}`}>
-                              ({change.change_percent >= 0 ? '+' : ''}{change.change_percent.toFixed(2)}%)
-                            </span>
-                          </div>
-                        ) : '-'}
-                      </td>
-                      <td>{change.reason || '-'}</td>
+        {/* Price Change History and Sales Data - Side by Side */}
+        <div className="side-by-side-container">
+          {/* Price Change History */}
+          {priceHistory && priceHistory.length > 0 && (
+            <div className="info-card compact-card">
+              <h2>Price Change History</h2>
+              <div className="price-table-container">
+                <table className="price-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Old Price</th>
+                      <th>New Price</th>
+                      <th>Change</th>
+                      <th>Reason</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Show More Button */}
-            {pricePagination && pricePagination.has_more && (
-              <div className="show-more-container">
-                <button
-                  onClick={loadMorePriceChanges}
-                  disabled={loadingMorePrices}
-                  className="show-more-button"
-                >
-                  {loadingMorePrices ? 'Loading...' : `Show More (${pricePagination.total_count - priceHistory.length} remaining)`}
-                </button>
+                  </thead>
+                  <tbody>
+                    {priceHistory.slice(0, 10).map((change, index) => (
+                      <tr key={index}>
+                        <td>{formatDate(change.date)}</td>
+                        <td>{change.old_price ? formatCurrency(change.old_price) : '-'}</td>
+                        <td>{change.new_price ? formatCurrency(change.new_price) : '-'}</td>
+                        <td>
+                          {change.change_amount !== null && change.change_percent !== null ? (
+                            <div className="price-change">
+                              <span className={`change-amount ${change.change_amount >= 0 ? 'positive' : 'negative'}`}>
+                                {change.change_amount >= 0 ? '+' : ''}{formatCurrency(change.change_amount)}
+                              </span>
+                              <span className={`change-percent ${change.change_percent >= 0 ? 'positive' : 'negative'}`}>
+                                ({change.change_percent >= 0 ? '+' : ''}{change.change_percent.toFixed(2)}%)
+                              </span>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td>{change.reason || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
 
-            {/* Price History Summary */}
-            {pricePagination && (
-              <div className="price-history-summary">
-                Showing {priceHistory.length} of {pricePagination.total_count} price changes
+              {/* Compact Summary */}
+              {pricePagination && (
+                <div className="compact-summary">
+                  Showing {Math.min(10, priceHistory.length)} of {pricePagination.total_count} price changes
+                  {pricePagination.has_more && priceHistory.length >= 10 && (
+                    <button
+                      onClick={loadMorePriceChanges}
+                      disabled={loadingMorePrices}
+                      className="compact-show-more"
+                    >
+                      {loadingMorePrices ? 'Loading...' : 'Show More'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sales Data */}
+          <div className="info-card compact-card">
+            <h2>Sales History</h2>
+            {product.sales_data && product.sales_data.length > 0 ? (
+              <>
+                <div className="sales-table-container">
+                  <table className="sales-table compact-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>Code</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {product.sales_data.slice(0, Math.min(salesDisplayCount, 10)).map((sale, index) => (
+                        <tr key={index}>
+                          <td>{formatDate(sale.date || sale.solddate)}</td>
+                          <td>{sale.soldprice ? formatCurrency(sale.soldprice) : '-'}</td>
+                          <td>{sale.code || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Compact Summary */}
+                <div className="compact-summary">
+                  Showing {Math.min(salesDisplayCount, 10, product.sales_data.length)} of {product.sales_data.length} sales records
+                  {product.sales_data.length > Math.min(salesDisplayCount, 10) && (
+                    <button
+                      onClick={() => setSalesDisplayCount(prev => Math.min(prev + 5, product.sales_data.length))}
+                      className="compact-show-more"
+                    >
+                      Show More
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="no-sales-data compact-no-data">
+                <p>No sales data available for this product.</p>
               </div>
             )}
           </div>
-        )}
+        </div>
 
         {/* Weekly Performance History */}
         {product.weekly_performance && product.weekly_performance.length > 0 && (
@@ -416,58 +461,7 @@ const ProductDetailsScreen = () => {
           </div>
         )}
 
-        {/* Sales Data */}
-        <div className="info-card">
-          <h2>Sales History</h2>
-          {product.sales_data && product.sales_data.length > 0 ? (
-            <>
-              <div className="sales-table-container">
-                <table className="sales-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Price</th>
-                      <th>Code</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {product.sales_data.slice(0, salesDisplayCount).map((sale, index) => (
-                      <tr key={index}>
-                        <td>{formatDate(sale.date || sale.solddate)}</td>
-                        <td>{sale.soldprice ? formatCurrency(sale.soldprice) : '-'}</td>
-                        <td>{sale.code || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
 
-              {/* Show More Button for Sales */}
-              {product.sales_data.length > salesDisplayCount && (
-                <div className="show-more-container">
-                  <button
-                    onClick={() => setSalesDisplayCount(prev => Math.min(prev + 10, product.sales_data.length))}
-                    className="show-more-button"
-                  >
-                    Show More ({product.sales_data.length - salesDisplayCount} remaining)
-                  </button>
-                </div>
-              )}
-
-              {/* Sales Summary */}
-              <div className="sales-summary">
-                Showing {Math.min(salesDisplayCount, product.sales_data.length)} of {product.sales_data.length} sales records
-              </div>
-            </>
-          ) : (
-            <div className="no-sales-data">
-              <p>No sales data available for this product.</p>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
-                Sales data count: {product.sales_data ? product.sales_data.length : 'undefined'}
-              </p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

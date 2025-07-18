@@ -567,40 +567,136 @@
   justify-content: center;
 }
 
+/* Side by Side Container for Price History and Sales Data */
+.side-by-side-container {
+  display: flex;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.compact-card {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.compact-card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.compact-card .price-table-container,
+.compact-card .sales-table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.compact-table {
+  font-size: 0.8rem;
+  height: 100%;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 0.6rem;
+}
+
+.compact-summary {
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f3f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.compact-show-more {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: background-color 0.3s ease;
+}
+
+.compact-show-more:hover {
+  background-color: #2980b9;
+}
+
+.compact-show-more:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.compact-no-data {
+  text-align: center;
+  color: #6c757d;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e1e8ed;
+}
+
+.compact-no-data p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .product-details-screen {
     padding: 1rem;
   }
-  
+
   .product-header {
     padding: 1rem;
   }
-  
+
   .header-content {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .header-content h1 {
     font-size: 1.5rem;
   }
-  
+
   .info-card {
     padding: 1.5rem;
   }
-  
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .info-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .error-actions {
     flex-direction: column;
     align-items: center;
+  }
+
+  /* Stack side-by-side containers on mobile */
+  .side-by-side-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .compact-card {
+    padding: 1rem;
   }
 }
