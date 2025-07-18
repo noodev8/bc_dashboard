@@ -59,10 +59,11 @@ router.post('/', async (req, res) => {
         console.log(`GET_PRODUCTS: Season filter: ${seasonFilter || 'none'}`);
         console.log(`GET_PRODUCTS: Season filter exclude: ${seasonFilterExclude || 'none'}`);
 
-        // Build SQL query with optional season filtering
+        // Build SQL query with optional season filtering and title information
         let query = `
-            SELECT gp.*
+            SELECT gp.*, t.shopifytitle
             FROM groupid_performance gp
+            LEFT JOIN title t ON gp.groupid = t.groupid
         `;
 
         // Add join with skusummary if season filter is provided
@@ -113,7 +114,8 @@ router.post('/', async (req, res) => {
             next_review_date: row.next_review_date,
             review_date: row.review_date,
             avg_gross_margin: row.avg_gross_margin ? parseFloat(row.avg_gross_margin) : 0,
-            recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0
+            recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0,
+            shopify_title: row.shopifytitle || null
         }));
         
         // Return successful response
