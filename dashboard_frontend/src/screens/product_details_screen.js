@@ -193,38 +193,90 @@ const ProductDetailsScreen = () => {
 
       {/* Main Content */}
       <div className="product-content">
-        {/* Basic Information Card */}
-        <div className="info-card">
-          <h2>Basic Information</h2>
-          <div className="info-grid">
-            <div className="info-item">
-              <label>Group ID:</label>
-              <span>{product.groupid}</span>
-            </div>
-            <div className="info-item">
-              <label>Channel:</label>
-              <span>{product.channel}</span>
-            </div>
-            <div className="info-item">
-              <label>Brand:</label>
-              <span>{product.brand || '-'}</span>
-            </div>
-            <div className="info-item">
-              <label>Owner:</label>
-              <span>{product.owner || '-'}</span>
-            </div>
-            <div className="info-item">
-              <label>Segment:</label>
-              <span className={`segment-badge ${getSegmentClass(product.segment)}`}>
-                {product.segment || '-'}
-              </span>
-            </div>
-            {product.sku_details?.season && (
-              <div className="info-item">
-                <label>Season:</label>
-                <span>{product.sku_details.season}</span>
+        {/* Product Image and Basic Information */}
+        <div className="product-overview">
+          {/* Product Image */}
+          {product.sku_details?.imagename ? (
+            <div className="product-image-container">
+              <img
+                src={`https://images.brookfieldcomfort.com/${product.sku_details.imagename}`}
+                alt={`Product ${product.groupid}`}
+                className="product-image"
+                onError={(e) => {
+                  console.error('Image failed to load');
+                  console.error('URL:', `https://images.brookfieldcomfort.com/${product.sku_details.imagename}`);
+                  console.error('Error event:', e);
+
+                  // Try loading as background image instead
+                  const imageUrl = `https://images.brookfieldcomfort.com/${product.sku_details.imagename}`;
+                  const testDiv = document.createElement('div');
+                  testDiv.style.backgroundImage = `url(${imageUrl})`;
+                  testDiv.style.width = '100%';
+                  testDiv.style.height = '100%';
+                  testDiv.style.backgroundSize = 'cover';
+                  testDiv.style.backgroundPosition = 'center';
+
+                  // Replace the img with background div
+                  const container = e.target.parentNode;
+                  container.removeChild(e.target);
+                  container.removeChild(e.target.nextSibling);
+                  container.appendChild(testDiv);
+
+                  console.log('Trying background image approach');
+                }}
+                onLoad={() => {
+                  console.log('Image loaded successfully:', `https://images.brookfieldcomfort.com/${product.sku_details.imagename}`);
+                }}
+              />
+              <div className="image-placeholder" style={{ display: 'none' }}>
+                <span>Image not available</span>
+                <div style={{ fontSize: '11px', marginTop: '8px', color: '#666', wordBreak: 'break-all', lineHeight: '1.3' }}>
+                  Attempted URL:<br/>
+                  https://images.brookfieldcomfort.com/{product.sku_details.imagename}
+                </div>
               </div>
-            )}
+            </div>
+          ) : (
+            <div className="product-image-container">
+              <div className="image-placeholder">
+                <span>No image name in database</span>
+              </div>
+            </div>
+          )}
+
+          {/* Basic Information Card */}
+          <div className="info-card">
+            <h2>Basic Information</h2>
+            <div className="info-grid">
+              <div className="info-item">
+                <label>Group ID:</label>
+                <span>{product.groupid}</span>
+              </div>
+              <div className="info-item">
+                <label>Channel:</label>
+                <span>{product.channel}</span>
+              </div>
+              <div className="info-item">
+                <label>Brand:</label>
+                <span>{product.brand || '-'}</span>
+              </div>
+              <div className="info-item">
+                <label>Owner:</label>
+                <span>{product.owner || '-'}</span>
+              </div>
+              <div className="info-item">
+                <label>Segment:</label>
+                <span className={`segment-badge ${getSegmentClass(product.segment)}`}>
+                  {product.segment || '-'}
+                </span>
+              </div>
+              {product.sku_details?.season && (
+                <div className="info-item">
+                  <label>Season:</label>
+                  <span>{product.sku_details.season}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
