@@ -68,6 +68,17 @@ Success Response:
         "reason": "Cost increase"
       }
       // ... more price changes
+    ],
+    "sales_data": [
+      {
+        "date": "2024-07-20T10:30:00Z",
+        "amount": 125.50,
+        "quantity": 5,
+        "price": 25.10,
+        "total": 125.50,
+        // ... other sales fields from the sales table
+      }
+      // ... more sales records
     ]
   }
 }
@@ -134,9 +145,25 @@ router.post('/', async (req, res) => {
 
         if (skuDetails) {
             console.log(`GET_PRODUCT_DETAILS: Found SKU details for ${groupid}`);
+            console.log(`GET_PRODUCT_DETAILS: SKU details fields:`, Object.keys(skuDetails));
             if (skuDetails.shopifyprice) {
                 console.log(`GET_PRODUCT_DETAILS: Found shopifyprice: ${skuDetails.shopifyprice} for ${groupid}`);
             }
+        }
+
+        // Get Shopify title from title table
+        const titleQuery = `
+            SELECT shopifytitle
+            FROM title
+            WHERE groupid = $1
+        `;
+
+        let titleResult = { rows: [] };
+        try {
+            titleResult = await db.query(titleQuery, [groupid]);
+            console.log(`GET_PRODUCT_DETAILS: Found title data for ${groupid}:`, titleResult.rows.length > 0 ? titleResult.rows[0] : 'none');
+        } catch (titleError) {
+            console.log(`GET_PRODUCT_DETAILS: Title query error: ${titleError.message}`);
         }
 
         // Get historical weekly performance data
@@ -150,6 +177,45 @@ router.post('/', async (req, res) => {
 
         const weeklyResult = await db.query(weeklyQuery, [groupid]);
         console.log(`GET_PRODUCT_DETAILS: Found ${weeklyResult.rows.length} weeks of historical data for ${groupid}`);
+
+        // Get sales data from sales table
+        let salesResult = { rows: [] };
+        try {
+            console.log(`GET_PRODUCT_DETAILS: Querying sales table for groupid: ${groupid}`);
+
+            const salesQuery = `
+                SELECT *
+                FROM sales
+                WHERE groupid = $1
+                ORDER BY solddate DESC
+                LIMIT 50
+            `;
+
+            salesResult = await db.query(salesQuery, [groupid]);
+            console.log(`GET_PRODUCT_DETAILS: Found ${salesResult.rows.length} sales records for ${groupid}`);
+
+            if (salesResult.rows.length > 0) {
+                console.log(`GET_PRODUCT_DETAILS: Sample sales record:`, salesResult.rows[0]);
+            }
+        } catch (salesError) {
+            console.log(`GET_PRODUCT_DETAILS: Sales query error: ${salesError.message}`);
+
+            // Try with different date field if solddate doesn't exist
+            try {
+                const salesQueryAlt = `
+                    SELECT *
+                    FROM sales
+                    WHERE groupid = $1
+                    ORDER BY id DESC
+                    LIMIT 50
+                `;
+
+                salesResult = await db.query(salesQueryAlt, [groupid]);
+                console.log(`GET_PRODUCT_DETAILS: Found ${salesResult.rows.length} sales records using id ordering`);
+            } catch (altError) {
+                console.log(`GET_PRODUCT_DETAILS: Alternative sales query also failed: ${altError.message}`);
+            }
+        }
 
         // Get price change history
         // First try to get the table structure to understand column names
@@ -232,6 +298,7 @@ router.post('/', async (req, res) => {
             avg_gross_margin: productData.avg_gross_margin ? parseFloat(productData.avg_gross_margin) : 0,
             recommended_price: productData.recommended_price ? parseFloat(productData.recommended_price) : 0,
             current_price: skuDetails?.shopifyprice ? parseFloat(skuDetails.shopifyprice) : 0,
+            shopify_title: titleResult.rows.length > 0 ? titleResult.rows[0].shopifytitle : null,
             sku_details: skuDetails ? {
                 season: skuDetails.season || '',
                 // Add other SKU fields as needed
@@ -270,7 +337,19 @@ router.post('/', async (req, res) => {
                 has_more: (price_offset + priceResult.rows.length) < (priceResult.totalCount || 0),
                 limit: price_limit,
                 offset: price_offset
-            }
+            },
+            sales_data: salesResult.rows.map(row => ({
+                // Include all sales fields, handling the actual field names from your database
+                ...row,
+                // Map the actual fields from your sales table
+                quantity: row.qty || row.quantity || 1,
+                price: row.soldprice ? parseFloat(row.soldprice) : null,
+                amount: row.soldprice ? parseFloat(row.soldprice) : null,
+                total: row.soldprice ? parseFloat(row.soldprice) : null,
+                date: row.solddate || row.created_at || row.date || null,
+                order_number: row.ordernum || null,
+                channel: row.channel || null
+            }))
         };
 
         console.log(`GET_PRODUCT_DETAILS: Successfully retrieved details for ${groupid}`);

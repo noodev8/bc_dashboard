@@ -86,8 +86,8 @@
 /* Product Image Styles */
 .product-image-container {
   flex-shrink: 0;
-  width: 300px;
-  height: 300px;
+  width: 200px;
+  height: 200px;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -119,10 +119,13 @@
   font-style: italic;
 }
 
-/* Adjust info card to take remaining space */
+/* Adjust info card to take remaining space and match image height */
 .product-overview .info-card {
   flex: 1;
   margin: 0;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Responsive adjustments */
@@ -133,7 +136,7 @@
 
   .product-image-container {
     width: 100%;
-    max-width: 300px;
+    max-width: 200px;
     margin: 0 auto;
   }
 }
@@ -160,6 +163,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
+  flex: 1;
+  align-content: start;
 }
 
 .info-item {
@@ -428,6 +433,86 @@
 
 .weekly-table tbody tr:nth-child(even) {
   background-color: #fdfdfd;
+}
+
+/* Sales Table */
+.sales-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sales-table th {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #2c3e50;
+  border-bottom: 2px solid #e1e8ed;
+  white-space: nowrap;
+}
+
+.sales-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e1e8ed;
+  color: #2c3e50;
+}
+
+.sales-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.sales-table tbody tr:nth-child(even) {
+  background-color: #fdfdfd;
+}
+
+.sales-summary {
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f3f4;
+}
+
+.no-sales-data {
+  text-align: center;
+  color: #6c757d;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e1e8ed;
+}
+
+.show-more-container {
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.show-more-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.show-more-button:hover {
+  background-color: #2980b9;
+}
+
+.show-more-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
 }
 
 /* Loading and Error States */

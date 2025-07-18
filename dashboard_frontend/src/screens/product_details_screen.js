@@ -19,6 +19,7 @@ const ProductDetailsScreen = () => {
   const [priceHistory, setPriceHistory] = useState([]);
   const [pricePagination, setPricePagination] = useState(null);
   const [loadingMorePrices, setLoadingMorePrices] = useState(false);
+  const [salesDisplayCount, setSalesDisplayCount] = useState(5);
 
   // Load product details on component mount
   useEffect(() => {
@@ -51,6 +52,8 @@ const ProductDetailsScreen = () => {
         setPriceHistory(result.product.price_history || []);
         setPricePagination(result.product.price_history_pagination || null);
         console.log('PRODUCT_DETAILS: Product details loaded successfully');
+        console.log('PRODUCT_DETAILS: Sales data:', result.product.sales_data);
+        console.log('PRODUCT_DETAILS: SKU details:', result.product.sku_details);
       } else {
         setError(result.message || 'Failed to load product details');
         console.error('PRODUCT_DETAILS: Failed to load product details:', result.error);
@@ -249,33 +252,17 @@ const ProductDetailsScreen = () => {
             <h2>Basic Information</h2>
             <div className="info-grid">
               <div className="info-item">
-                <label>Group ID:</label>
-                <span>{product.groupid}</span>
+                <label>Product Title:</label>
+                <span>{product.shopify_title || product.groupid}</span>
               </div>
               <div className="info-item">
-                <label>Channel:</label>
-                <span>{product.channel}</span>
-              </div>
-              <div className="info-item">
-                <label>Brand:</label>
+                <label>Product Supplier:</label>
                 <span>{product.brand || '-'}</span>
               </div>
               <div className="info-item">
-                <label>Owner:</label>
-                <span>{product.owner || '-'}</span>
+                <label>Group ID:</label>
+                <span>{product.groupid}</span>
               </div>
-              <div className="info-item">
-                <label>Segment:</label>
-                <span className={`segment-badge ${getSegmentClass(product.segment)}`}>
-                  {product.segment || '-'}
-                </span>
-              </div>
-              {product.sku_details?.season && (
-                <div className="info-item">
-                  <label>Season:</label>
-                  <span>{product.sku_details.season}</span>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -428,6 +415,59 @@ const ProductDetailsScreen = () => {
             </div>
           </div>
         )}
+
+        {/* Sales Data */}
+        <div className="info-card">
+          <h2>Sales History</h2>
+          {product.sales_data && product.sales_data.length > 0 ? (
+            <>
+              <div className="sales-table-container">
+                <table className="sales-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Price</th>
+                      <th>Code</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.sales_data.slice(0, salesDisplayCount).map((sale, index) => (
+                      <tr key={index}>
+                        <td>{formatDate(sale.date || sale.solddate)}</td>
+                        <td>{sale.soldprice ? formatCurrency(sale.soldprice) : '-'}</td>
+                        <td>{sale.code || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Show More Button for Sales */}
+              {product.sales_data.length > salesDisplayCount && (
+                <div className="show-more-container">
+                  <button
+                    onClick={() => setSalesDisplayCount(prev => Math.min(prev + 10, product.sales_data.length))}
+                    className="show-more-button"
+                  >
+                    Show More ({product.sales_data.length - salesDisplayCount} remaining)
+                  </button>
+                </div>
+              )}
+
+              {/* Sales Summary */}
+              <div className="sales-summary">
+                Showing {Math.min(salesDisplayCount, product.sales_data.length)} of {product.sales_data.length} sales records
+              </div>
+            </>
+          ) : (
+            <div className="no-sales-data">
+              <p>No sales data available for this product.</p>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
+                Sales data count: {product.sales_data ? product.sales_data.length : 'undefined'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
