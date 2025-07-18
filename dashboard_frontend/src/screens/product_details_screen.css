@@ -146,23 +146,23 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .info-card h2 {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
   color: #2c3e50;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 600;
   border-bottom: 2px solid #e1e8ed;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
 }
 
 /* Info Grid Layout */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
   flex: 1;
   align-content: start;
 }
@@ -170,35 +170,35 @@
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .info-item label {
   font-weight: 600;
   color: #495057;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-item span {
   color: #2c3e50;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
 /* Metrics Grid Layout */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
 }
 
 .metric-item {
   text-align: center;
-  padding: 1.5rem;
+  padding: 1rem;
   background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #e1e8ed;
 }
 
@@ -206,14 +206,14 @@
   display: block;
   font-weight: 600;
   color: #6c757d;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #2c3e50;
 }
@@ -269,29 +269,30 @@
 
 /* Notes Section */
 .notes-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid #e1e8ed;
 }
 
 .notes-section label {
   font-weight: 600;
   color: #495057;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   display: block;
 }
 
 .notes-text {
   color: #2c3e50;
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
-  padding: 1rem;
+  padding: 0.8rem;
   background-color: #f8f9fa;
   border-radius: 6px;
   border-left: 4px solid #007bff;
+  font-size: 0.9rem;
 }
 
 /* Price History Table */
@@ -674,7 +675,7 @@
   }
 
   .info-card {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .metrics-grid {
