@@ -49,9 +49,23 @@ const ProductDetailsScreen = () => {
       
       if (result.success) {
         setProduct(result.product);
-        setPriceHistory(result.product.price_history || []);
+
+        // Deduplicate price history entries based on date, old_price, and new_price
+        const uniquePriceHistory = [];
+        const seenEntries = new Set();
+
+        (result.product.price_history || []).forEach(entry => {
+          const key = `${entry.date}-${entry.old_price}-${entry.new_price}`;
+          if (!seenEntries.has(key)) {
+            seenEntries.add(key);
+            uniquePriceHistory.push(entry);
+          }
+        });
+
+        setPriceHistory(uniquePriceHistory);
         setPricePagination(result.product.price_history_pagination || null);
         console.log('PRODUCT_DETAILS: Product details loaded successfully');
+        console.log(`PRODUCT_DETAILS: Deduplicated price history: ${uniquePriceHistory.length} unique entries from ${(result.product.price_history || []).length} total`);
         console.log('PRODUCT_DETAILS: Sales data:', result.product.sales_data);
         console.log('PRODUCT_DETAILS: SKU details:', result.product.sku_details);
       } else {
@@ -124,10 +138,24 @@ const ProductDetailsScreen = () => {
       const result = await getMorePriceChanges(groupid, 10, nextOffset);
 
       if (result.success) {
-        // Append new price changes to existing ones
-        setPriceHistory(prevHistory => [...prevHistory, ...result.price_history]);
+        // Deduplicate new price changes and merge with existing ones
+        setPriceHistory(prevHistory => {
+          const combined = [...prevHistory, ...result.price_history];
+          const uniqueEntries = [];
+          const seenEntries = new Set();
+
+          combined.forEach(entry => {
+            const key = `${entry.date}-${entry.old_price}-${entry.new_price}`;
+            if (!seenEntries.has(key)) {
+              seenEntries.add(key);
+              uniqueEntries.push(entry);
+            }
+          });
+
+          return uniqueEntries;
+        });
         setPricePagination(result.pagination);
-        console.log('PRODUCT_DETAILS: More price changes loaded successfully');
+        console.log('PRODUCT_DETAILS: More price changes loaded and deduplicated successfully');
       } else {
         console.error('PRODUCT_DETAILS: Failed to load more price changes:', result.error);
       }
@@ -343,8 +371,8 @@ const ProductDetailsScreen = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {priceHistory.slice(0, 10).map((change, index) => (
-                      <tr key={index}>
+                    {priceHistory.slice(0, 5).map((change, index) => (
+                      <tr key={`${change.date}-${change.old_price}-${change.new_price}-${index}`}>
                         <td>{formatDate(change.date)}</td>
                         <td>{change.old_price ? formatCurrency(change.old_price) : '-'}</td>
                         <td>{change.new_price ? formatCurrency(change.new_price) : '-'}</td>
@@ -370,8 +398,8 @@ const ProductDetailsScreen = () => {
               {/* Compact Summary */}
               {pricePagination && (
                 <div className="compact-summary">
-                  Showing {Math.min(10, priceHistory.length)} of {pricePagination.total_count} price changes
-                  {pricePagination.has_more && priceHistory.length >= 10 && (
+                  Showing {Math.min(5, priceHistory.length)} of {pricePagination.total_count} price changes
+                  {(pricePagination.has_more || priceHistory.length > 5) && (
                     <button
                       onClick={loadMorePriceChanges}
                       disabled={loadingMorePrices}

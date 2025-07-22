@@ -503,9 +503,9 @@ const ProductsScreen = () => {
   };
 
   /**
-   * Handles double-clicking on a product row to open details in new tab
+   * Handles clicking on a product row to open details in same tab
    */
-  const handleProductDoubleClick = (groupid) => {
+  const handleProductClick = (groupid) => {
     // Build URL with current filter state as return parameters
     const returnParams = new URLSearchParams();
     if (searchTerm) returnParams.set('search', searchTerm);
@@ -520,7 +520,30 @@ const ProductsScreen = () => {
 
     const returnUrl = returnParams.toString() ? `?${returnParams.toString()}` : '';
     const url = `/products/${encodeURIComponent(groupid)}${returnUrl}`;
-    window.open(url, '_blank');
+    navigate(url);
+  };
+
+  /**
+   * Handles copying group ID to clipboard
+   */
+  const handleCopyGroupId = async (groupid, event) => {
+    // Prevent row click when copy button is clicked
+    event.stopPropagation();
+
+    try {
+      await navigator.clipboard.writeText(groupid);
+      // You could add a toast notification here if desired
+      console.log(`Copied group ID: ${groupid}`);
+    } catch (err) {
+      console.error('Failed to copy group ID:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = groupid;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
   };
 
   /**
@@ -863,10 +886,24 @@ const ProductsScreen = () => {
               <tr
                 key={`${product.groupid}-${index}`}
                 className="product-row"
-                onDoubleClick={() => handleProductDoubleClick(product.groupid)}
-                title="Double-click to view product details in new tab"
+                onClick={() => handleProductClick(product.groupid)}
+                title="Click to view product details"
               >
-                <td className="groupid-cell">{product.groupid || '-'}</td>
+                <td className="groupid-cell">
+                  <div className="groupid-container">
+                    {product.groupid && (
+                      <button
+                        className="copy-button"
+                        onClick={(e) => handleCopyGroupId(product.groupid, e)}
+                        title="Copy Group ID"
+                        aria-label="Copy Group ID"
+                      >
+                        📋
+                      </button>
+                    )}
+                    <span className="groupid-text">{product.groupid || '-'}</span>
+                  </div>
+                </td>
                 <td className="profit-cell">
                   {formatComparison(
                     product.annual_profit,

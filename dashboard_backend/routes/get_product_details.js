@@ -217,35 +217,52 @@ router.post('/', async (req, res) => {
             }
         }
 
-        // Get price change history
+        // Get price change history with deduplication
         // First try to get the table structure to understand column names
         let priceResult = { rows: [] };
         try {
-            // Try different possible column names for date/timestamp
+            // Try different possible column names for date/timestamp with DISTINCT to avoid duplicates
             const priceQuery = `
-                SELECT *
+                SELECT DISTINCT ON (
+                    COALESCE(
+                        CASE
+                            WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'created_at') THEN created_at
+                            WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'date') THEN date
+                            WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'timestamp') THEN timestamp
+                            ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = 'price_change_log' AND data_type IN ('timestamp', 'timestamptz', 'date') LIMIT 1)
+                        END,
+                        '1970-01-01'::timestamp
+                    ),
+                    COALESCE(old_price, previous_price, price_before, 0),
+                    COALESCE(new_price, current_price, price_after, price, 0)
+                ) *
                 FROM price_change_log
                 WHERE groupid = $1
                 ORDER BY
-                    CASE
-                        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'created_at') THEN created_at
-                        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'date') THEN date
-                        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'timestamp') THEN timestamp
-                        ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = 'price_change_log' AND data_type IN ('timestamp', 'timestamptz', 'date') LIMIT 1)
-                    END DESC
-                LIMIT 20
+                    COALESCE(
+                        CASE
+                            WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'created_at') THEN created_at
+                            WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'date') THEN date
+                            WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'timestamp') THEN timestamp
+                            ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = 'price_change_log' AND data_type IN ('timestamp', 'timestamptz', 'date') LIMIT 1)
+                        END,
+                        '1970-01-01'::timestamp
+                    ) DESC,
+                    COALESCE(old_price, previous_price, price_before, 0),
+                    COALESCE(new_price, current_price, price_after, price, 0)
+                LIMIT $2 OFFSET $3
             `;
 
             // If the complex query fails, try a simpler approach
             try {
-                priceResult = await db.query(priceQuery, [groupid]);
+                priceResult = await db.query(priceQuery, [groupid, price_limit, price_offset]);
             } catch (complexError) {
-                // Fallback: try common column names with pagination
+                // Fallback: try common column names with pagination and deduplication
                 const fallbackQueries = [
-                    `SELECT * FROM price_change_log WHERE groupid = $1 ORDER BY date DESC LIMIT $2 OFFSET $3`,
-                    `SELECT * FROM price_change_log WHERE groupid = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3`,
-                    `SELECT * FROM price_change_log WHERE groupid = $1 ORDER BY change_date DESC LIMIT $2 OFFSET $3`,
-                    `SELECT * FROM price_change_log WHERE groupid = $1 LIMIT $2 OFFSET $3`
+                    `SELECT DISTINCT ON (date, old_price, new_price) * FROM price_change_log WHERE groupid = $1 ORDER BY date DESC, old_price, new_price LIMIT $2 OFFSET $3`,
+                    `SELECT DISTINCT ON (timestamp, old_price, new_price) * FROM price_change_log WHERE groupid = $1 ORDER BY timestamp DESC, old_price, new_price LIMIT $2 OFFSET $3`,
+                    `SELECT DISTINCT ON (change_date, old_price, new_price) * FROM price_change_log WHERE groupid = $1 ORDER BY change_date DESC, old_price, new_price LIMIT $2 OFFSET $3`,
+                    `SELECT DISTINCT * FROM price_change_log WHERE groupid = $1 ORDER BY id DESC LIMIT $2 OFFSET $3`
                 ];
 
                 for (const fallbackQuery of fallbackQueries) {
@@ -261,13 +278,52 @@ router.post('/', async (req, res) => {
 
             console.log(`GET_PRODUCT_DETAILS: Found ${priceResult.rows.length} price changes for ${groupid}`);
 
-            // Get total count of price changes for pagination
+            // Get total count of unique price changes for pagination
             let totalPriceChanges = 0;
             try {
-                const countQuery = `SELECT COUNT(*) as total FROM price_change_log WHERE groupid = $1`;
-                const countResult = await db.query(countQuery, [groupid]);
-                totalPriceChanges = parseInt(countResult.rows[0].total) || 0;
-                console.log(`GET_PRODUCT_DETAILS: Total price changes available: ${totalPriceChanges}`);
+                // Count distinct entries to match our deduplication logic
+                const countQuery = `
+                    SELECT COUNT(DISTINCT (
+                        COALESCE(
+                            CASE
+                                WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'created_at') THEN created_at
+                                WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'date') THEN date
+                                WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_change_log' AND column_name = 'timestamp') THEN timestamp
+                                ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = 'price_change_log' AND data_type IN ('timestamp', 'timestamptz', 'date') LIMIT 1)
+                            END,
+                            '1970-01-01'::timestamp
+                        ),
+                        COALESCE(old_price, previous_price, price_before, 0),
+                        COALESCE(new_price, current_price, price_after, price, 0)
+                    )) as total
+                    FROM price_change_log
+                    WHERE groupid = $1
+                `;
+
+                try {
+                    const countResult = await db.query(countQuery, [groupid]);
+                    totalPriceChanges = parseInt(countResult.rows[0].total) || 0;
+                } catch (complexCountError) {
+                    // Fallback to simpler count queries
+                    const fallbackCountQueries = [
+                        `SELECT COUNT(DISTINCT (date, old_price, new_price)) as total FROM price_change_log WHERE groupid = $1`,
+                        `SELECT COUNT(DISTINCT (timestamp, old_price, new_price)) as total FROM price_change_log WHERE groupid = $1`,
+                        `SELECT COUNT(DISTINCT (change_date, old_price, new_price)) as total FROM price_change_log WHERE groupid = $1`,
+                        `SELECT COUNT(DISTINCT id) as total FROM price_change_log WHERE groupid = $1`
+                    ];
+
+                    for (const fallbackCountQuery of fallbackCountQueries) {
+                        try {
+                            const countResult = await db.query(fallbackCountQuery, [groupid]);
+                            totalPriceChanges = parseInt(countResult.rows[0].total) || 0;
+                            break;
+                        } catch (fallbackCountError) {
+                            continue;
+                        }
+                    }
+                }
+
+                console.log(`GET_PRODUCT_DETAILS: Total unique price changes available: ${totalPriceChanges}`);
             } catch (countError) {
                 console.log(`GET_PRODUCT_DETAILS: Could not get price change count: ${countError.message}`);
             }
