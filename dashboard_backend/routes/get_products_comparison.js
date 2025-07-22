@@ -10,7 +10,8 @@ Request Payload:
 {
   "comparison_period": "week" | "month",           // Optional, defaults to "week"
   "season_filter": "Summer" | "Winter",            // Optional, includes only products with this season
-  "season_filter_exclude": "Summer" | "Winter"     // Optional, excludes products with this season
+  "season_filter_exclude": "Summer" | "Winter",   // Optional, excludes products with this season
+  "brand_filter": "Birkenstock" | "UKD" | etc.    // Optional, filters by specific brand
 }
 
 Success Response:
@@ -101,11 +102,13 @@ router.post('/', async (req, res) => {
         const comparisonPeriod = req.body.comparison_period || 'week';
         console.log(`GET_PRODUCTS_COMPARISON: Comparison period: ${comparisonPeriod}`);
 
-        // Get season filter from request body (optional)
+        // Get filters from request body (optional)
         const seasonFilter = req.body.season_filter;
         const seasonFilterExclude = req.body.season_filter_exclude;
+        const brandFilter = req.body.brand_filter;
         console.log(`GET_PRODUCTS_COMPARISON: Season filter: ${seasonFilter || 'none'}`);
         console.log(`GET_PRODUCTS_COMPARISON: Season filter exclude: ${seasonFilterExclude || 'none'}`);
+        console.log(`GET_PRODUCTS_COMPARISON: Brand filter: ${brandFilter || 'none'}`);
 
         // First, find the actual current week from the database (highest week number)
         const currentWeekQuery = `
@@ -211,6 +214,7 @@ router.post('/', async (req, res) => {
             // Return current products without comparison data
             let seasonJoinCondition = '';
             let seasonWhereCondition = '';
+            let brandWhereCondition = '';
             let queryParams = [];
 
             if (seasonFilter || seasonFilterExclude) {
@@ -222,6 +226,18 @@ router.post('/', async (req, res) => {
                 } else if (seasonFilterExclude) {
                     queryParams.push(seasonFilterExclude);
                     seasonWhereCondition = `AND (ss.season IS NULL OR ss.season != $${queryParams.length})`;
+                }
+            }
+
+            // Add brand filter condition if provided
+            if (brandFilter) {
+                if (brandFilter === 'UKD') {
+                    // UKD represents all brands except the specific ones
+                    brandWhereCondition = ` AND (gp.brand IS NULL OR gp.brand = '' OR gp.brand NOT IN ('Birkenstock', 'Rieker', 'Lunar', 'Crocs', 'Hotter', 'Skechers'))`;
+                } else {
+                    // Filter for specific brand
+                    queryParams.push(brandFilter);
+                    brandWhereCondition = ` AND gp.brand = $${queryParams.length}`;
                 }
             }
 
@@ -244,6 +260,7 @@ router.post('/', async (req, res) => {
                 ${seasonJoinCondition}
                 WHERE gp.channel = 'SHP'
                 ${seasonWhereCondition}
+                ${brandWhereCondition}
                 ORDER BY gp.annual_profit DESC NULLS LAST
             `;
 
@@ -301,6 +318,7 @@ router.post('/', async (req, res) => {
         let queryParams = [comparisonWeek];
         let seasonJoinCondition = '';
         let seasonWhereCondition = '';
+        let brandWhereCondition = '';
 
         if (seasonFilter || seasonFilterExclude) {
             seasonJoinCondition = 'LEFT JOIN skusummary ss ON gp.groupid = ss.groupid';
@@ -311,6 +329,18 @@ router.post('/', async (req, res) => {
             } else if (seasonFilterExclude) {
                 queryParams.push(seasonFilterExclude);
                 seasonWhereCondition = `AND (ss.season IS NULL OR ss.season != $${queryParams.length})`;
+            }
+        }
+
+        // Add brand filter condition if provided
+        if (brandFilter) {
+            if (brandFilter === 'UKD') {
+                // UKD represents all brands except the specific ones
+                brandWhereCondition = ` AND (gp.brand IS NULL OR gp.brand = '' OR gp.brand NOT IN ('Birkenstock', 'Rieker', 'Lunar', 'Crocs', 'Hotter', 'Skechers'))`;
+            } else {
+                // Filter for specific brand
+                queryParams.push(brandFilter);
+                brandWhereCondition = ` AND gp.brand = $${queryParams.length}`;
             }
         }
 
@@ -334,6 +364,7 @@ router.post('/', async (req, res) => {
                 ${seasonJoinCondition}
                 WHERE gp.channel = 'SHP'
                 ${seasonWhereCondition}
+                ${brandWhereCondition}
             ),
             previous_week_data AS (
                 SELECT 

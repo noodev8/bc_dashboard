@@ -10,6 +10,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getProducts } from '../api/get_products_api';
 import { getOwners } from '../api/get_owners_api';
 import { getProductsComparison } from '../api/get_products_comparison_api';
+import { getBrands } from '../api/get_brands_api';
 import OverallStats from '../components/OverallStats';
 import './products_screen.css';
 
@@ -20,11 +21,12 @@ const ProductsScreen = () => {
   // State management
   const [products, setProducts] = useState([]);
   const [owners, setOwners] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [comparisonInfo, setComparisonInfo] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
-  const [showSeasonDropdown, setShowSeasonDropdown] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   // Initialize state from URL parameters
   const [sortConfig, setSortConfig] = useState({
@@ -52,9 +54,10 @@ const ProductsScreen = () => {
       winter: false
     };
   });
+  const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || 'All');
 
-  // Ref for season filter dropdown
-  const seasonDropdownRef = useRef(null);
+  // Ref for filter dropdown
+  const filterDropdownRef = useRef(null);
 
   /**
    * Updates URL search parameters to preserve filter state
@@ -67,7 +70,8 @@ const ProductsScreen = () => {
           (typeof value === 'boolean' && !value) ||
           (key === 'sortKey' && value === 'annual_profit') ||
           (key === 'sortDir' && value === 'desc') ||
-          (key === 'period' && value === 'week')) {
+          (key === 'period' && value === 'week') ||
+          (key === 'brand' && value === 'All')) {
         newParams.delete(key);
       } else if (typeof value === 'object') {
         newParams.set(key, encodeURIComponent(JSON.stringify(value)));
@@ -84,23 +88,23 @@ const ProductsScreen = () => {
     loadInitialData();
   }, []);
 
-  // Reload products when comparison mode, period, or season filter changes
+  // Reload products when comparison mode, period, season filter, or brand filter changes
   useEffect(() => {
     if (products.length > 0) { // Only reload if we already have products loaded
       loadProducts();
     }
-  }, [comparisonMode, comparisonPeriod, seasonFilters]);
+  }, [comparisonMode, comparisonPeriod, seasonFilters, selectedBrand]);
 
-  // Handle clicks outside of the season dropdown to close it
+  // Handle clicks outside of the filter dropdown to close it
   useEffect(() => {
     function handleClickOutside(event) {
-      if (seasonDropdownRef.current && !seasonDropdownRef.current.contains(event.target)) {
-        setShowSeasonDropdown(false);
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+        setShowFilterDropdown(false);
       }
     }
 
     // Add event listener when dropdown is shown
-    if (showSeasonDropdown) {
+    if (showFilterDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
@@ -108,7 +112,7 @@ const ProductsScreen = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showSeasonDropdown]);
+  }, [showFilterDropdown]);
 
   /**
    * Determines the season filter to send to the API based on checkbox selections
@@ -188,7 +192,15 @@ const ProductsScreen = () => {
   };
 
   /**
-   * Loads both products and owners data
+   * Handles brand filter changes
+   */
+  const handleBrandFilterChange = (brand) => {
+    setSelectedBrand(brand);
+    updateURLParams({ brand: brand });
+  };
+
+  /**
+   * Loads products, owners, and brands data
    */
   const loadInitialData = async () => {
     try {
@@ -197,7 +209,8 @@ const ProductsScreen = () => {
 
       await Promise.all([
         loadProducts(),
-        loadOwners()
+        loadOwners(),
+        loadBrands()
       ]);
     } finally {
       setLoading(false);
@@ -211,7 +224,7 @@ const ProductsScreen = () => {
     try {
       console.log(`PRODUCTS_SCREEN: Loading products (comparison mode: ${comparisonMode})...`);
 
-      // Prepare request payload with optional season filter
+      // Prepare request payload with optional filters
       const requestPayload = {};
       const seasonFilterForAPI = getSeasonFilterForAPI();
       if (seasonFilterForAPI) {
@@ -220,6 +233,11 @@ const ProductsScreen = () => {
         } else if (seasonFilterForAPI.exclude) {
           requestPayload.season_filter_exclude = seasonFilterForAPI.exclude;
         }
+      }
+
+      // Add brand filter if selected
+      if (selectedBrand && selectedBrand !== 'All') {
+        requestPayload.brand_filter = selectedBrand;
       }
 
       let result;
@@ -288,6 +306,28 @@ const ProductsScreen = () => {
     } catch (err) {
       console.error('PRODUCTS_SCREEN: Unexpected error loading owners:', err);
       // Don't set error for owners failure, just log it
+    }
+  };
+
+  /**
+   * Fetches brands data from the API
+   */
+  const loadBrands = async () => {
+    try {
+      console.log('PRODUCTS_SCREEN: Loading brands...');
+
+      const result = await getBrands();
+
+      if (result.return_code === 'SUCCESS') {
+        setBrands(result.brands);
+        console.log(`PRODUCTS_SCREEN: Loaded ${result.brands.length} brands`);
+      } else {
+        console.error('PRODUCTS_SCREEN: Failed to load brands:', result.message);
+        // Don't set error for brands failure, just log it
+      }
+    } catch (err) {
+      console.error('PRODUCTS_SCREEN: Unexpected error loading brands:', err);
+      // Don't set error for brands failure, just log it
     }
   };
 
@@ -476,6 +516,7 @@ const ProductsScreen = () => {
     if (sortConfig.key !== 'annual_profit') returnParams.set('sortKey', sortConfig.key);
     if (sortConfig.direction !== 'desc') returnParams.set('sortDir', sortConfig.direction);
     if (!seasonFilters.all) returnParams.set('seasons', encodeURIComponent(JSON.stringify(seasonFilters)));
+    if (selectedBrand !== 'All') returnParams.set('brand', selectedBrand);
 
     const returnUrl = returnParams.toString() ? `?${returnParams.toString()}` : '';
     const url = `/products/${encodeURIComponent(groupid)}${returnUrl}`;
@@ -665,52 +706,75 @@ const ProductsScreen = () => {
 
         <div className="products-summary">
           <span>Showing {filteredProducts.length} of {products.length} products</span>
-          <div className="season-filter-container" ref={seasonDropdownRef}>
+          <div className="filter-container" ref={filterDropdownRef}>
             <button
-              onClick={() => setShowSeasonDropdown(!showSeasonDropdown)}
-              className={`season-filter-button ${!seasonFilters.all ? 'active' : ''}`}
-              title="Filter by season"
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className={`filter-button ${(!seasonFilters.all || selectedBrand !== 'All') ? 'active' : ''}`}
+              title="Filter by season or brand"
             >
               🔍
             </button>
-            {showSeasonDropdown && (
-              <div className="season-dropdown">
-                <div className="season-checkbox-group">
-                  <label className="season-checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={seasonFilters.all}
-                      onChange={(e) => handleSeasonFilterChange('all', e.target.checked)}
-                    />
-                    <span className="checkbox-label">All</span>
-                  </label>
+            {showFilterDropdown && (
+              <div className="filter-dropdown">
+                {/* Season Filter Section */}
+                <div className="filter-section">
+                  <h4 className="filter-section-title">Season</h4>
+                  <div className="filter-checkbox-group">
+                    <label className="filter-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={seasonFilters.all}
+                        onChange={(e) => handleSeasonFilterChange('all', e.target.checked)}
+                      />
+                      <span className="checkbox-label">All</span>
+                    </label>
 
-                  <label className="season-checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={seasonFilters.any}
-                      onChange={(e) => handleSeasonFilterChange('any', e.target.checked)}
-                    />
-                    <span className="checkbox-label">Any</span>
-                  </label>
+                    <label className="filter-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={seasonFilters.any}
+                        onChange={(e) => handleSeasonFilterChange('any', e.target.checked)}
+                      />
+                      <span className="checkbox-label">Any</span>
+                    </label>
 
-                  <label className="season-checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={seasonFilters.summer}
-                      onChange={(e) => handleSeasonFilterChange('summer', e.target.checked)}
-                    />
-                    <span className="checkbox-label">☀️ Summer</span>
-                  </label>
+                    <label className="filter-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={seasonFilters.summer}
+                        onChange={(e) => handleSeasonFilterChange('summer', e.target.checked)}
+                      />
+                      <span className="checkbox-label">☀️ Summer</span>
+                    </label>
 
-                  <label className="season-checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={seasonFilters.winter}
-                      onChange={(e) => handleSeasonFilterChange('winter', e.target.checked)}
-                    />
-                    <span className="checkbox-label">❄️ Winter</span>
-                  </label>
+                    <label className="filter-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={seasonFilters.winter}
+                        onChange={(e) => handleSeasonFilterChange('winter', e.target.checked)}
+                      />
+                      <span className="checkbox-label">❄️ Winter</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Brand Filter Section */}
+                <div className="filter-section">
+                  <h4 className="filter-section-title">Brand</h4>
+                  <div className="filter-radio-group">
+                    {brands.map(brand => (
+                      <label key={brand} className="filter-radio-item">
+                        <input
+                          type="radio"
+                          name="brand"
+                          value={brand}
+                          checked={selectedBrand === brand}
+                          onChange={() => handleBrandFilterChange(brand)}
+                        />
+                        <span className="radio-label">{brand}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

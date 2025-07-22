@@ -55,6 +55,7 @@ const authenticateToken = (req, res, next) => {
 // Import route handlers
 const get_products = require("./routes/get_products");
 const get_owners = require("./routes/get_owners");
+const get_brands = require("./routes/get_brands");
 const get_products_comparison = require("./routes/get_products_comparison");
 const get_product_details = require("./routes/get_product_details");
 
@@ -62,6 +63,7 @@ const get_product_details = require("./routes/get_product_details");
 // All routes use POST method as per project requirements
 app.use("/get_products", get_products);
 app.use("/get_owners", get_owners);
+app.use("/get_brands", get_brands);
 app.use("/get_products_comparison", get_products_comparison);
 app.use("/get_product_details", get_product_details);
 

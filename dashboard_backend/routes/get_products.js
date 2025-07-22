@@ -10,7 +10,8 @@ Purpose: Retrieves SHP channel products from the groupid_performance table order
 Request Payload:
 {
   "season_filter": "Summer" | "Winter",           // optional, includes only products with this season
-  "season_filter_exclude": "Summer" | "Winter"    // optional, excludes products with this season
+  "season_filter_exclude": "Summer" | "Winter",  // optional, excludes products with this season
+  "brand_filter": "Birkenstock" | "UKD" | etc.   // optional, filters by specific brand
 }
 
 Success Response:
@@ -53,11 +54,13 @@ router.post('/', async (req, res) => {
     try {
         console.log('GET_PRODUCTS: Starting product retrieval...');
 
-        // Get season filter from request body (optional)
+        // Get filters from request body (optional)
         const seasonFilter = req.body.season_filter;
         const seasonFilterExclude = req.body.season_filter_exclude;
+        const brandFilter = req.body.brand_filter;
         console.log(`GET_PRODUCTS: Season filter: ${seasonFilter || 'none'}`);
         console.log(`GET_PRODUCTS: Season filter exclude: ${seasonFilterExclude || 'none'}`);
+        console.log(`GET_PRODUCTS: Brand filter: ${brandFilter || 'none'}`);
 
         // Build SQL query with optional season filtering and title information
         let query = `
@@ -77,7 +80,7 @@ router.post('/', async (req, res) => {
             WHERE gp.channel = 'SHP'
         `;
 
-        // Add season filter condition if provided
+        // Add filter conditions if provided
         let queryParams = [];
         if (seasonFilter) {
             queryParams.push(seasonFilter);
@@ -85,6 +88,18 @@ router.post('/', async (req, res) => {
         } else if (seasonFilterExclude) {
             queryParams.push(seasonFilterExclude);
             query += ` AND (ss.season IS NULL OR ss.season != $${queryParams.length})`;
+        }
+
+        // Add brand filter condition if provided
+        if (brandFilter) {
+            if (brandFilter === 'UKD') {
+                // UKD represents all brands except the specific ones
+                query += ` AND (gp.brand IS NULL OR gp.brand = '' OR gp.brand NOT IN ('Birkenstock', 'Rieker', 'Lunar', 'Crocs', 'Hotter', 'Skechers'))`;
+            } else {
+                // Filter for specific brand
+                queryParams.push(brandFilter);
+                query += ` AND gp.brand = $${queryParams.length}`;
+            }
         }
 
         query += `

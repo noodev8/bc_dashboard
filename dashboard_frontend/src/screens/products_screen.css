@@ -108,15 +108,15 @@
   border-color: #2980b9;
 }
 
-/* Season Filter Styles */
-.season-filter-container {
+/* Filter Styles */
+.filter-container {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   position: relative;
 }
 
-.season-filter-button {
+.filter-button {
   padding: 0.5rem;
   border: 2px solid #e1e8ed;
   border-radius: 6px;
@@ -134,23 +134,23 @@
   justify-content: center;
 }
 
-.season-filter-button:hover {
+.filter-button:hover {
   border-color: #bdc3c7;
   background-color: #f8f9fa;
 }
 
-.season-filter-button.active {
+.filter-button.active {
   background-color: #3498db;
   color: white;
   border-color: #3498db;
 }
 
-.season-filter-button.active:hover {
+.filter-button.active:hover {
   background-color: #2980b9;
   border-color: #2980b9;
 }
 
-.season-dropdown {
+.filter-dropdown {
   position: absolute;
   top: 100%;
   right: 0; /* Align with right side of button */
@@ -160,63 +160,94 @@
   border-radius: 6px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin-top: 0.5rem;
-  min-width: 150px;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
 }
 
-.season-option {
-  padding: 0.75rem 1rem;
-  background-color: white;
-  border: none;
-  text-align: left;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.season-option:hover {
-  background-color: #f8f9fa;
-}
-
-.season-option.active {
-  background-color: #ebf5fb;
-  color: #3498db;
-  font-weight: 500;
-}
-
-.season-option:not(:last-child) {
+/* Filter Section Styles */
+.filter-section {
+  padding: 0.75rem;
   border-bottom: 1px solid #e1e8ed;
 }
 
-/* Season Checkbox Styles */
-.season-checkbox-group {
-  padding: 0.5rem;
+.filter-section:last-child {
+  border-bottom: none;
 }
 
-.season-checkbox-item {
+.filter-section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Filter Checkbox Styles */
+.filter-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-checkbox-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: background-color 0.2s ease;
 }
 
-.season-checkbox-item:hover {
+.filter-checkbox-item:hover {
   background-color: #f8f9fa;
   border-radius: 4px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
-.season-checkbox-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+.filter-checkbox-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
   cursor: pointer;
   accent-color: #3498db;
 }
 
-.checkbox-label {
+/* Filter Radio Styles */
+.filter-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+}
+
+.filter-radio-item:hover {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.filter-radio-item input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #3498db;
+}
+
+.checkbox-label,
+.radio-label {
   user-select: none;
   cursor: pointer;
 }
