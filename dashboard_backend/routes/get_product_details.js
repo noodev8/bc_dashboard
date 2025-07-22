@@ -186,7 +186,7 @@ router.post('/', async (req, res) => {
             const salesQuery = `
                 SELECT *
                 FROM sales
-                WHERE groupid = $1
+                WHERE groupid = $1 AND channel = 'SHP'
                 ORDER BY solddate DESC
                 LIMIT 50
             `;
@@ -205,7 +205,7 @@ router.post('/', async (req, res) => {
                 const salesQueryAlt = `
                     SELECT *
                     FROM sales
-                    WHERE groupid = $1
+                    WHERE groupid = $1 AND channel = 'SHP'
                     ORDER BY id DESC
                     LIMIT 50
                 `;
