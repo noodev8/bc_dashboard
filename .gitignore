@@ -13,7 +13,6 @@ Thumbs.db
 # =========================================
 # Node.js & Next.js (splitdine_server + Next frontend)
 node_modules/
-.env.local
 dist/
 .cache/
 .next/
@@ -58,8 +57,9 @@ android/key.properties
 **/android/app/.cxx/
 
 # API credentials and sensitive configuration files
-merchant-feed-api-462809-23c712978791.json
 .env
+.env.local
+.env.production
 
 # Python environment
 venv/
@@ -72,7 +72,4 @@ __pycache__/
 *.lock
 .idea/
 DB_Schema.sql
-# database backup
-*.dump
-*.gz
 
