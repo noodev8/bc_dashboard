@@ -130,6 +130,7 @@ router.post('/', async (req, res) => {
             review_date: row.review_date,
             avg_gross_margin: row.avg_gross_margin ? parseFloat(row.avg_gross_margin) : 0,
             recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0,
+            stock: row.stock || 0,
             shopify_title: row.shopifytitle || null
         }));
         

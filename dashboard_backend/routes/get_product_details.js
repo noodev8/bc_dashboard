@@ -31,6 +31,7 @@ Success Response:
     "avg_gross_margin": 0.2500,
     "recommended_price": 29.99,
     "current_price": 27.50,
+    "stock": 32,
     "sku_details": {
       "season": "Summer",
       "additional_info": "..."
@@ -354,6 +355,7 @@ router.post('/', async (req, res) => {
             avg_gross_margin: productData.avg_gross_margin ? parseFloat(productData.avg_gross_margin) : 0,
             recommended_price: productData.recommended_price ? parseFloat(productData.recommended_price) : 0,
             current_price: skuDetails?.shopifyprice ? parseFloat(skuDetails.shopifyprice) : 0,
+            stock: productData.stock || 0,
             shopify_title: titleResult.rows.length > 0 ? titleResult.rows[0].shopifytitle : null,
             sku_details: skuDetails ? {
                 season: skuDetails.season || '',

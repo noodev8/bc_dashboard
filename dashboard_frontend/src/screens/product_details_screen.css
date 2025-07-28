@@ -238,6 +238,10 @@
   color: #fd7e14;
 }
 
+.metric-value.stock-level {
+  color: #20c997;
+}
+
 /* Segment Badge Styles */
 .segment-badge {
   display: inline-block;

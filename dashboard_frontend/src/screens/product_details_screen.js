@@ -324,6 +324,12 @@ const ProductDetailsScreen = () => {
               </span>
             </div>
             <div className="metric-item">
+              <label>Stock Level</label>
+              <span className="metric-value stock-level">
+                {product.stock?.toLocaleString() || '0'}
+              </span>
+            </div>
+            <div className="metric-item">
               <label>Recommended Price</label>
               <span className="metric-value recommended-price">
                 {formatCurrency(product.recommended_price)}

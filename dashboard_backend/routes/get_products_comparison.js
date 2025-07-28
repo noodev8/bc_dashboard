@@ -255,7 +255,8 @@ router.post('/', async (req, res) => {
                     gp.next_review_date,
                     gp.review_date,
                     gp.avg_gross_margin,
-                    gp.recommended_price
+                    gp.recommended_price,
+                    gp.stock
                 FROM groupid_performance gp
                 ${seasonJoinCondition}
                 WHERE gp.channel = 'SHP'
@@ -280,6 +281,7 @@ router.post('/', async (req, res) => {
                 review_date: row.review_date,
                 avg_gross_margin: parseFloat(row.avg_gross_margin) || 0,
                 recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0,
+                stock: row.stock || 0,
                 previous_week: null,
                 changes: null
             }));
@@ -359,7 +361,8 @@ router.post('/', async (req, res) => {
                     gp.next_review_date,
                     gp.review_date,
                     gp.avg_gross_margin,
-                    gp.recommended_price
+                    gp.recommended_price,
+                    gp.stock
                 FROM groupid_performance gp
                 ${seasonJoinCondition}
                 WHERE gp.channel = 'SHP'
@@ -449,6 +452,7 @@ router.post('/', async (req, res) => {
             review_date: row.review_date,
             avg_gross_margin: row.avg_gross_margin ? parseFloat(row.avg_gross_margin) : 0,
             recommended_price: row.recommended_price ? parseFloat(row.recommended_price) : 0,
+            stock: row.stock || 0,
             
             // Previous week data
             previous_week: row.prev_annual_profit !== null ? {
